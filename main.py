@@ -1,11 +1,19 @@
 #/usr/bin/python
-import json, hikari, time
+import json, time, logging
+import hikari
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
 
 # Loading the config
-with open("config.json", 'r') as f:
-    config: dict = json.load(f)
+try:
+        with open("config.json", 'r') as f:
+            config: dict = json.load(f)
+except FileNotFoundError:
+        logging.error("The config.json file is missing.")
+        raise SystemExit
+except json.decoder.JSONDecodeError as je:
+        logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
+        raise SystemExit
 
 # Creating an AsyncBufferedConsumer instance
 mp_consumer = AsyncBufferedConsumer(max_size=25)
@@ -14,12 +22,14 @@ mp_client = Mixpanel(config['mixpanel_token'], consumer=mp_consumer)
 
 # Creating a GatewayBot instance so we can listen to events from the gateway
 bot = hikari.GatewayBot(
-	token=config["discord_token"]
+	token=config["discord_token"],
+        force_color=True
 )
 
 @bot.listen(hikari.MessageCreateEvent)
 async def on_message_create(event: hikari.MessageCreateEvent):
-	print(f"New message {event.channel_id}/{event.message_id} by {event.author_id}.")
+	logging.info(f"New message {event.channel_id}/{event.message_id} by {event.author_id}.")
+#	logging.debug(f"event:{event} {dir(event)}")
 
 	# If messages is a reply set reff to the id of the message its replying to | else set it to None
 	ref = event.message.referenced_message
@@ -34,11 +44,10 @@ async def on_message_create(event: hikari.MessageCreateEvent):
 		"channel_id": event.channel_id,
 		"guild_id": event.message.guild_id,
 		"timestamp": event.message.timestamp,
-		"text": event.message.content,
+		"text": event.message.content[:30],  # limit size of text sent 
 		"text_len": len(event.message.content),
-		"attachments": [i.url for i in event.message.attachments],
+		"attachments": [i.url for i in event.message.attachments], 
 		"in_reply_to": reff
-
 	}
 
 	# add the event to the flush queue
@@ -48,7 +57,7 @@ async def on_message_create(event: hikari.MessageCreateEvent):
 
 @bot.listen(hikari.ReactionAddEvent)
 async def on_reaction_add(event: hikari.ReactionAddEvent):
-	print(f"New reaction to {event.channel_id}/{event.message_id} by {event.user_id}: {event.emoji_name}.")
+	logging.info(f"New reaction to {event.channel_id}/{event.message_id} by {event.user_id}: {event.emoji_name}.")
 	
 	# Getting the guild id of the channel
 	cha = await bot.rest.fetch_channel(event.channel_id)
@@ -84,7 +93,12 @@ async def on_reaction_add(event: hikari.ReactionAddEvent):
 
 
 if __name__ == "__main__":
+	logging.info('--- bot starting ---')
+
 	bot.run()
-	print("Flushing events...")
+	
+	logging.info("Flushing events...")
+
 	# Flush the AsyncBufferedConsumer after on exit
 	mp_consumer.flush()
+	logging.info('--- bot done ---')
