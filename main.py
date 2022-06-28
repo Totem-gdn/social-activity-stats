@@ -29,7 +29,6 @@ bot = hikari.GatewayBot(
 @bot.listen(hikari.GuildMessageCreateEvent)
 async def on_message_create(event: hikari.GuildMessageCreateEvent):
 	logging.info(f"New message {event.channel_id}/{event.message_id} by {event.author_id}.")
-	#logging.debug(f"event:{event} {dir(event)}")
 
 	cha = bot.cache.get_guild_channel(event.channel_id)
 	if cha is None:
@@ -37,14 +36,10 @@ async def on_message_create(event: hikari.GuildMessageCreateEvent):
 		cha = await bot.rest.fetch_channel(event.channel_id)
 		await bot._cache.set_guild_channel(cha)
 
-	# If messages is a reply set reff to the id of the message its replying to | else set it to None
-	ref = event.message.referenced_message
-	if ref:
-		reff = ref.id
-	else:
-		reff = None
+	#ensure msg_text is a string
+	msg_text = event.message.content if isinstance(event.message.content, str) else ""
 
-	data = {
+	properties = {
 		"user_id": event.member.id,
 		"username": event.member.username,
 		"user_discriminator": event.member.discriminator,
@@ -53,14 +48,18 @@ async def on_message_create(event: hikari.GuildMessageCreateEvent):
 		"channel_name":cha.name,
 		"guild_id": event.message.guild_id,
 		"timestamp": event.message.timestamp,
-		"text": event.message.content[:30] if isinstance(event.message.content, str) else "",
-		"text_len": len(event.message.content) if isinstance(event.message.content, str) else 0,
+		"text": msg_text[:30],
+		"text_len": len(msg_text),
 		"attachments": [i.url for i in event.message.attachments],
-		"in_reply_to": reff
 	}
+	# If messages is a reply add to properties
+	ref = event.message.referenced_message
+	if ref:
+                properties["in_reply_to"] = ref.id
+                
 	# add the event to the flush queue
 	# we use event.__class__.__name__ to get the name of the event
-	mp_client.track(event.author_id, event.__class__.__name__, data)
+	mp_client.track(event.member.username, event.__class__.__name__, properties)
 
 
 @bot.listen(hikari.GuildReactionAddEvent)
@@ -76,11 +75,11 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 
 	# if emoji is a custom emoji set its name to emoji_id:emoji_name | else set it to the unicode emoji
 	if event.emoji_id:
-		emoji_name = f"{event.emoji_id}:{event.emoji_name}"
+		emoji_name = f"{event.emoji_name}(Custom)"
 	else:
 		emoji_name = event.emoji_name
 
-	data = {
+	properties = {
 		"user_id": event.user_id,
 		"username": event.member.username,
 		"user_discriminator": event.member.discriminator,
@@ -95,7 +94,7 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 	}
 	# add the event to the flush queue
 	# we use event.__class__.__name__ to get the name of the event
-	mp_client.track(event.user_id, event.__class__.__name__, data)
+	mp_client.track(event.member.username, event.__class__.__name__, properties)
 
 
 if __name__ == "__main__":
