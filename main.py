@@ -36,6 +36,7 @@ def get_event_properties(event):
 	return {
 		"user_id": event.member.id,
 		"username": event.member.username,
+		"is_bot": event.member.is_bot,
 		"user_discriminator": event.member.discriminator,
 		"user_displayname": event.member.display_name,
 		"channel_id": event.channel_id,
