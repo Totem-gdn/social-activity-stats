@@ -1,0 +1,32 @@
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: discord-activity-to-mixpanel-service
+#spec:
+#  selector:
+#    app: discord-activity-to-mixpanel
+#  ports:
+#  - protocol: "TCP"
+#    port: 80
+#    targetPort: 5000
+
+#---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-activity-to-mixpanel
+spec:
+  selector:
+    matchLabels:
+      app: discord-activity-to-mixpanel
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: discord-activity-to-mixpanel
+    spec:
+      containers:
+      - name: discord-activity-to-mixpanel
+        image: 667950714614.dkr.ecr.us-east-1.amazonaws.com/discord-activity-to-mixpanel:latest
+        ports:
+        - containerPort: 5000
