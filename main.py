@@ -4,6 +4,8 @@ import hikari
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
 
+logger = logging.getLogger(__name__)
+
 # Loading the config
 try:
         with open("config.json", 'r') as f:
@@ -14,6 +16,10 @@ except FileNotFoundError:
 except json.decoder.JSONDecodeError as je:
         logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
         raise SystemExit
+
+# get logging level from config file - default to INFO
+logger.setLevel(logging.getLevelName(config.get("debug_level", "INFO")))
+
 
 # Creating an AsyncBufferedConsumer instance
 mp_consumer = AsyncBufferedConsumer(max_size=25)
@@ -26,52 +32,65 @@ bot = hikari.GatewayBot(
         force_color=True
 )
 
-@bot.listen(hikari.GuildMessageCreateEvent)
-async def on_message_create(event: hikari.GuildMessageCreateEvent):
-	logging.info(f"New message {event.channel_id}/{event.message_id} by {event.author_id}.")
-
-	cha = bot.cache.get_guild_channel(event.channel_id)
-	if cha is None:
-		logging.info(f"{event.channel_id} not cached, fetching")
-		cha = await bot.rest.fetch_channel(event.channel_id)
-		await bot._cache.set_guild_channel(cha)
-
-	#ensure msg_text is a string
-	msg_text = event.message.content if isinstance(event.message.content, str) else ""
-
-	properties = {
+def get_event_properties(event):
+	return {
 		"user_id": event.member.id,
 		"username": event.member.username,
 		"user_discriminator": event.member.discriminator,
 		"user_displayname": event.member.display_name,
 		"channel_id": event.channel_id,
-		"channel_name":cha.name,
-		"guild_id": event.message.guild_id,
-		"timestamp": event.message.timestamp,
-		"text": msg_text[:30],
-		"text_len": len(msg_text),
-		"attachments": [i.url for i in event.message.attachments],
+#		"timestamp": event.message.timestamp,
 	}
-	# If messages is a reply add to properties
+
+def send_to_mixpanel(event, properties):
+	dbg = '' # use '-dbueg' when runing locally 
+	mp_client.track(event.member.username, event.__class__.__name__ + dbg, properties)
+        
+
+@bot.listen(hikari.GuildMessageCreateEvent)
+async def on_message_create(event: hikari.GuildMessageCreateEvent):
+	logger.debug(f"New message {event.channel_id}/{event.message_id} by {event.author_id}.")
+	logger.debug(f"event: {event}")
+	
+	properties = get_event_properties(event)
+
+	cha = bot.cache.get_guild_channel(event.channel_id)
+	if cha is None:
+		logger.debug(f"{event.channel_id} not cached, fetching")
+		cha = await bot.rest.fetch_channel(event.channel_id)
+		await bot._cache.set_guild_channel(cha)
+	properties["channel_name"] = cha.name
+
+	#ensure msg_text is a string
+	msg_text = event.message.content if isinstance(event.message.content, str) else ""
+	properties["text"] = msg_text[:30]
+	properties["text_len"] = len(msg_text)
+
+	if event.message.attachments:
+                properties["attachments"] = [i.url for i in event.message.attachments]
+	
+	# If messages is a reply add ref to properties
 	ref = event.message.referenced_message
 	if ref:
                 properties["in_reply_to"] = ref.id
-                
-	# add the event to the flush queue
-	# we use event.__class__.__name__ to get the name of the event
-	mp_client.track(event.member.username, event.__class__.__name__, properties)
+
+	logger.info(f"New msg @{event.member.display_name} in #{cha.name}: {msg_text[:30]} .")
+	send_to_mixpanel(event, properties)
 
 
 @bot.listen(hikari.GuildReactionAddEvent)
 async def on_reaction_add(event: hikari.GuildReactionAddEvent):
-	logging.info(f"New reaction to {event.channel_id}/{event.message_id} by {event.user_id}: {event.emoji_name}.")
+	logger.debug(f"New reaction to {event.channel_id}/{event.message_id} by {event.user_id}: {event.emoji_name}.")
+	logger.debug(f"event: {event}")
 	
 	# Getting the guild id of the channel
 	cha = bot.cache.get_guild_channel(event.channel_id)
 	if cha is None:
-		logging.info(f"{event.channel_id} not cached, fetching")
+		logger.debug(f"{event.channel_id} not cached, fetching")
 		cha = await bot.rest.fetch_channel(event.channel_id)
-		await bot._cache.set_guild_channel(cha)	
+		await bot._cache.set_guild_channel(cha)
+
+	properties = get_event_properties(event)
 
 	# if emoji is a custom emoji set its name to emoji_id:emoji_name | else set it to the unicode emoji
 	if event.emoji_id:
@@ -79,31 +98,21 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 	else:
 		emoji_name = event.emoji_name
 
-	properties = {
-		"user_id": event.user_id,
-		"username": event.member.username,
-		"user_discriminator": event.member.discriminator,
-		"user_displayname": event.member.display_name,
-		"channel_id": event.channel_id,
-		"channel_name": cha.name,
-		"guild_id": event.guild_id,
-		"timestamp": int(time.time()),
-		"to_message_id": event.message_id,
-		"emoji_name": emoji_name,
-		"emoji_id": event.emoji_id
-	}
-	# add the event to the flush queue
-	# we use event.__class__.__name__ to get the name of the event
-	mp_client.track(event.member.username, event.__class__.__name__, properties)
+	properties["channel_name"] = cha.name
+	properties["to_message_id"] = event.message_id
+	properties["emoji_name"] = emoji_name
+	properties["emoji_id"] = event.emoji_id
+	
+	logger.info(f"New reaction: @{event.member.display_name} in #{cha.name}: {emoji_name}")
+	send_to_mixpanel(event, properties)
 
 
 if __name__ == "__main__":
-	logging.info('--- bot starting ---')
-
+	logger.info('--- bot starting ---')
 	bot.run()
 	
-	logging.info("Flushing events...")
-
+	logger.info("Flushing events...")
 	# Flush the AsyncBufferedConsumer after on exit
 	mp_consumer.flush()
+
 	logging.info('--- bot done ---')
