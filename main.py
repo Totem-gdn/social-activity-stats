@@ -6,14 +6,13 @@ from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
 
 import requests
-
-from bot_schedule import do_schedule
+import threading
 
 logger = logging.getLogger(__name__)
 
 # Loading the config
 try:
-    with open("config.json", 'r') as f:
+    with open("config_template.json", 'r') as f:
         config: dict = json.load(f)
 except FileNotFoundError:
     logging.error("The config.json file is missing.")
@@ -115,43 +114,46 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 
 
 def member_count():
-    # get data of server members
-    url = f"https://discordapp.com/api/guilds/{config['server_id']}/members"
-    headers = {
-        "Authorization": 'Bot ' + config["discord_token"]
-    }
-    params = {
-        "limit": 1000
-    }
-    response = requests.get(url=url, headers=headers, params=params)
+    while True:
+        print('worked')
+        # get data of server members
+        url = f"https://discordapp.com/api/guilds/{config['server_id']}/members"
+        headers = {
+            "Authorization": 'Bot ' + config["discord_token"]
+        }
+        params = {
+            "limit": 1000
+        }
+        response = requests.get(url=url, headers=headers, params=params)
 
-    # divides into users and bots
-    try:
-        users = []
-        bots = []
-        for user_data in response.json():
-            try:
-                if user_data['user']['bot'] is True:
-                    bots.append(user_data)
-                else:
+        # divides into users and bots
+        try:
+            users = []
+            bots = []
+            for user_data in response.json():
+                try:
+                    if user_data['user']['bot'] is True:
+                        bots.append(user_data)
+                    else:
+                        users.append(user_data)
+                except KeyError:
                     users.append(user_data)
-            except KeyError:
-                users.append(user_data)
-    except TypeError:
-        logging.error(response.text)
-        raise SystemExit
+        except TypeError:
+            logging.error(response.text)
+            raise SystemExit
 
-    # send counters to mixpanel
-    properties = {
-        "usersCount": len(users),
-        "botsCount": len(bots)
-    }
-    name = response.json()[1]['user']['username']
-    mp_client.track(name, "Member count", properties)
+        # send counters to mixpanel
+        properties = {
+            "usersCount": len(users),
+            "botsCount": len(bots)
+        }
+        name = response.json()[1]['user']['username']
+        mp_client.track(name, "Member count", properties)
+        time.sleep(60)
 
 
-# rechecks member counters every hour
-do_schedule(member_count)
+#start the second thread for the infinite operation of the function
+second_thread = threading.Thread(target=member_count).start()
 
 if __name__ == "__main__":
     logger.info('--- bot starting ---')
