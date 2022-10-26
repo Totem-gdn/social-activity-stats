@@ -115,7 +115,6 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 
 def member_count():
     while True:
-        print('worked')
         # get data of server members
         url = f"https://discordapp.com/api/guilds/{config['server_id']}/members"
         headers = {
@@ -149,7 +148,7 @@ def member_count():
         }
         name = response.json()[1]['user']['username']
         mp_client.track(name, "Member count", properties)
-        time.sleep(60)
+        time.sleep(3600)
 
 
 #start the second thread for the infinite operation of the function
