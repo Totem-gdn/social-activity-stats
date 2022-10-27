@@ -1,3 +1,6 @@
 mixpanel-py-async==0.3.0
 mixpanel==4.9.0
 hikari-lightbulb==2.2.1
+hikari~=2.0.0.dev111
+schedule~=1.1.0
+requests~=2.25.1
