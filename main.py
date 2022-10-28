@@ -147,7 +147,7 @@ def member_count():
             "botsCount": len(bots)
         }
 
-        mp_client.track("The mixpanel Bot", "Member count", properties)
+        mp_client.track("The mixpanel Bot", "MembersCount", properties)
         logger.info(f'usersCount: {len(users)} and botsCount: {len(bots)}  sent to mixpanel.')
         time.sleep(3600)
 
