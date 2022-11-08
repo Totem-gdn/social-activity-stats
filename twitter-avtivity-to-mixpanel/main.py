@@ -3,6 +3,12 @@ import json
 import logging
 import threading
 import time
+from dateutil.parser import parse
+
+from twitter_ads.campaign import LineItem
+from twitter_ads.client import Client
+from twitter_ads.enum import GRANULARITY, METRIC_GROUP, PLACEMENT
+from twitter_ads.utils import remove_hours
 
 import tweepy
 from tweepy import Cursor
@@ -32,7 +38,7 @@ mp_consumer = AsyncBufferedConsumer(max_size=25)
 mp_client = Mixpanel(config['mixpanel_token'], consumer=mp_consumer)
 
 # Get access to Twitter account
-auth = tweepy.OAuthHandler(config["consumer_key"], config["consumer_secret"])
+auth = tweepy.OAuth1UserHandler(config["consumer_key"], config["consumer_secret"])
 auth.set_access_token(config["access_token"], config["access_token_secret"])
 # Initialization Twitter API
 api = tweepy.API(auth, wait_on_rate_limit=True)
@@ -62,12 +68,17 @@ def send_profile_to_mixpanel(user):
 
 def update_followers_data():
     count = 0
-    for follower in Cursor(api.get_followers).items():
+    followers = []
+    for follower in Cursor(api.get_followers,count=200).items():
         count += 1
         follower_json = json.dumps(follower._json)
         follower_data = json.loads(follower_json)
         print(count, " ", follower_data, '\n')
-        send_profile_to_mixpanel(follower_data)
+        followers.append(follower_data)
+
+    for i in followers:
+        print("sent ",i)
+        send_profile_to_mixpanel(i)
         time.sleep(4)
 
 
