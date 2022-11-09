@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 # Loading the config
 try:
-    with open("config.json", 'r') as f:
+    with open("twitter-activity/config.json", 'r') as f:
         config: dict = json.load(f)
 except FileNotFoundError:
-    logging.error("The config.json file is missing.")
+    logging.error("The config.json file is missing in twitter-activity.")
     raise SystemExit
 except json.decoder.JSONDecodeError as je:
     logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
@@ -138,6 +138,10 @@ def get_new_tweets():
         time.sleep(300)
 
 
-if __name__ == "__main__":
+def twitter_main():
+    logger.info('--- Twitter API starting ---')
+
     threading.Thread(target=get_new_tweets).start()
     update_followers_data()
+
+    logging.info('--- Twitter API done ---')
