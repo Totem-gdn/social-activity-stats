@@ -3,12 +3,6 @@ import json
 import logging
 import threading
 import time
-from dateutil.parser import parse
-
-from twitter_ads.campaign import LineItem
-from twitter_ads.client import Client
-from twitter_ads.enum import GRANULARITY, METRIC_GROUP, PLACEMENT
-from twitter_ads.utils import remove_hours
 
 import tweepy
 from tweepy import Cursor
@@ -147,4 +141,3 @@ def get_new_tweets():
 if __name__ == "__main__":
     threading.Thread(target=get_new_tweets).start()
     update_followers_data()
-

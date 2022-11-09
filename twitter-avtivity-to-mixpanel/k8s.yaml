@@ -1,0 +1,32 @@
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: twitter-activity-to-mixpanel-service
+#spec:
+#  selector:
+#    app: twitter-activity-to-mixpanel
+#  ports:
+#  - protocol: "TCP"
+#    port: 80
+#    targetPort: 5000
+
+#---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twitter-activity-to-mixpanel
+spec:
+  selector:
+    matchLabels:
+      app: twitter-activity-to-mixpanel
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: twitter-activity-to-mixpanel
+    spec:
+      containers:
+      - name: twitter-activity-to-mixpanel
+        image: 667950714614.dkr.ecr.us-east-1.amazonaws.com/twitter-activity-to-mixpanel:latest
+        ports:
+        - containerPort: 5000
