@@ -61,19 +61,17 @@ def send_profile_to_mixpanel(user):
 
 
 def update_followers_data():
-    count = 0
-    followers = []
-    for follower in Cursor(api.get_followers,count=200).items():
-        count += 1
-        follower_json = json.dumps(follower._json)
-        follower_data = json.loads(follower_json)
-        print(count, " ", follower_data, '\n')
-        followers.append(follower_data)
+    while True:
+        followers = []
+        for follower in Cursor(api.get_followers, count=200).items():
+            follower_json = json.dumps(follower._json)
+            follower_data = json.loads(follower_json)
+            followers.append(follower_data)
 
-    for i in followers:
-        print("sent ",i)
-        send_profile_to_mixpanel(i)
-        time.sleep(4)
+        for i in followers:
+            send_profile_to_mixpanel(i)
+            time.sleep(4)
+        logger.info('User`s profiles in MixPanel updated.')
 
 
 def send_tweet_to_mixpanel(id):
