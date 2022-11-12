@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Loading the config
 try:
-    with open("config.json", 'r') as f:
+    with open("discord_activity/config.json", 'r') as f:
         config: dict = json.load(f)
 except FileNotFoundError:
     logging.error("The config.json file is missing.")

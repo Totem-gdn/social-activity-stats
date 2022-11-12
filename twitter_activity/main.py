@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 # Loading the config
 try:
-    with open("twitter-activity/config.json", 'r') as f:
+    with open("twitter_activity/config.json", 'r') as f:
         config: dict = json.load(f)
 except FileNotFoundError:
-    logging.error("The config.json file is missing in twitter-activity.")
+    logging.error("The config.json file is missing in twitter_activity.")
     raise SystemExit
 except json.decoder.JSONDecodeError as je:
     logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
@@ -62,16 +62,21 @@ def send_profile_to_mixpanel(user):
 
 def update_followers_data():
     while True:
+        count = 0
         followers = []
         for follower in Cursor(api.get_followers, count=200).items():
+            count += 1
             follower_json = json.dumps(follower._json)
             follower_data = json.loads(follower_json)
+            print(count, " ", follower_data, '\n')
             followers.append(follower_data)
 
         for i in followers:
+            print("sent ", i)
             send_profile_to_mixpanel(i)
             time.sleep(4)
-        logger.info('User`s profiles in MixPanel updated.')
+        logger.info('All user`s profiles in MixPanel updated.\nSleeping 1 hour.')
+        time.sleep(3600)
 
 
 def send_tweet_to_mixpanel(id):
@@ -91,7 +96,7 @@ def send_tweet_to_mixpanel(id):
     properties = {
         'createdAt': user['created_at'],
         'followersCount': user['followers_count'],
-        'ID': tweet_data['id'],
+        'ID': tweet_data['id_str'],
         'lang': tweet_data['lang'],
         'retweetCount': tweet_data['retweet_count'],
         'text': tweet_data['text'],
@@ -116,22 +121,22 @@ def send_tweet_to_mixpanel(id):
         properties['mediaUrl'] = tweet_data['entities']['media'][0]['media_url']
 
     # Send to Mixpanel
-    mp_client.track(distinct_id, 'TestEventNewTweet', properties)
-    logger.info('New tweet: ', tweet_data['text'])
+    mp_client.track(distinct_id, 'NewTweet', properties)
+    logger.info('\nNew tweet: {}'.format(tweet_data['text']))
 
 
 def get_new_tweets():
     while True:
         now = datetime.datetime.now()
-        last_five_minutes = now - datetime.timedelta(minutes=5)
+        last_five_minutes = now - datetime.timedelta(days=2)
         tweets = client.get_users_tweets(config['user_id'], start_time=last_five_minutes)
         tweet = tweets[0]
         if tweet is not None:
             for i in tweet:
-                print(i['id'])
                 send_tweet_to_mixpanel(i['id'])
+                time.sleep(6)
         else:
-            logger.info('Dosen`t have new tweets last 5 minutes.')
+            logger.info('Doesn`t have new tweets last 5 minutes.')
             pass
         time.sleep(300)
 
