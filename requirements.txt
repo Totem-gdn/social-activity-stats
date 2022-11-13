@@ -3,6 +3,6 @@ mixpanel==4.9.0
 hikari-lightbulb==2.2.1
 hikari~=2.0.0.dev111
 schedule~=1.1.0
-requests~=2.25.1
+requests~=2.27.0
 tweepy~=4.12.0
 
