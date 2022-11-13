@@ -128,7 +128,7 @@ def send_tweet_to_mixpanel(id):
 def get_new_tweets():
     while True:
         now = datetime.datetime.now()
-        last_five_minutes = now - datetime.timedelta(days=2)
+        last_five_minutes = now - datetime.timedelta(minutes=5)
         tweets = client.get_users_tweets(config['user_id'], start_time=last_five_minutes)
         tweet = tweets[0]
         if tweet is not None:
