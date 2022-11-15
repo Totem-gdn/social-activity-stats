@@ -1,5 +1,7 @@
 # /usr/bin/python
 import json, time, logging
+import os
+
 import hikari
 
 from mixpanel import Mixpanel
@@ -10,28 +12,17 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-# Loading the config
-try:
-    with open("discord_activity/config.json", 'r') as f:
-        config: dict = json.load(f)
-except FileNotFoundError:
-    logging.error("The config.json file is missing.")
-    raise SystemExit
-except json.decoder.JSONDecodeError as je:
-    logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
-    raise SystemExit
-
 # get logging level from config file - default to INFO
-logger.setLevel(logging.getLevelName(config.get("debug_level", "INFO")))
+logger.setLevel(logging.getLevelName("INFO"))
 
 # Creating an AsyncBufferedConsumer instance
 mp_consumer = AsyncBufferedConsumer(max_size=25)
 # Creating a Mixpanel instance and registering the AsyncBufferedConsumer as the consumer
-mp_client = Mixpanel(config['mixpanel_token'], consumer=mp_consumer)
+mp_client = Mixpanel(os.environ['DISCORD_MIXPANEL_TOKEN'], consumer=mp_consumer)
 
 # Creating a GatewayBot instance so we can listen to events from the gateway
 bot = hikari.GatewayBot(
-    token=config["discord_token"],
+    token=os.environ["DISCORD_TOKEN"],
     force_color=True
 )
 
@@ -116,9 +107,9 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 def member_count():
     while True:
         # get data of server members
-        url = f"https://discordapp.com/api/guilds/{config['server_id']}/members"
+        url = f"https://discordapp.com/api/guilds/{os.environ['DISCORD_SERVER_ID']}/members"
         headers = {
-            "Authorization": 'Bot ' + config["discord_token"]
+            "Authorization": 'Bot ' + os.environ["DISCORD_TOKEN"]
         }
         params = {
             "limit": 1000
