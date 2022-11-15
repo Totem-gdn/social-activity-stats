@@ -15,7 +15,7 @@ try:
     with open("discord_activity/config.json", 'r') as f:
         config: dict = json.load(f)
 except FileNotFoundError:
-    logging.error("The config.json file is missing.")
+    logging.error("The config.json file is missing for discord activities.")
     raise SystemExit
 except json.decoder.JSONDecodeError as je:
     logging.error(f"Bad config.json file. Content is not a valid json:\n{je}")
