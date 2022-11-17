@@ -1,4 +1,5 @@
-FROM python:3.9
+#FROM python:3.9
+FROM alpine:3.14
 
 ARG TWITTER_ACCESS_TOKEN \
     TWITTER_ACCESS_TOKEN_SECRET \
@@ -22,14 +23,16 @@ ENV TWITTER_ACCESS_TOKEN $TWITTER_ACCESS_TOKEN \
     DISCORD_MIXPANEL_TOKEN $DISCORD_MIXPANEL_TOKEN \
     DISCORD_SERVER_ID $DISCORD_SERVER_ID
 
-WORKDIR /usr/src/app
+RUN apk add --no-cache mysql-client
 
-COPY requirements.txt ./
+#WORKDIR /usr/src/app
 
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+#OPY requirements.txt ./
 
-COPY . .
+#RUN pip install --upgrade pip
+#RUN pip install --no-cache-dir -r requirements.txt
+
+#COPY . .
 
 #CMD [ "python", "./main.py" ]
-CMD [ "ping", "1.1.1.1" ]
+ENTRYPOINT ["mysql"]
