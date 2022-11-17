@@ -1,5 +1,5 @@
 #FROM python:3.9
-FROM ubuntu:latest
+FROM ubuntu/nginx:latest
 
 ARG TWITTER_ACCESS_TOKEN \
     TWITTER_ACCESS_TOKEN_SECRET \
@@ -31,6 +31,5 @@ ENV TWITTER_ACCESS_TOKEN $TWITTER_ACCESS_TOKEN \
 #RUN pip install --no-cache-dir -r requirements.txt
 
 #COPY . .
-
+EXPOSE 80
 #CMD [ "python", "./main.py" ]
-CMD ["bash"]
