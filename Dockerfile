@@ -1,5 +1,4 @@
-#FROM python:3.9
-FROM ubuntu/nginx:latest
+FROM python:3.10
 
 ARG TWITTER_ACCESS_TOKEN
 ARG TWITTER_ACCESS_TOKEN_SECRET
@@ -23,13 +22,13 @@ ENV DISCORD_TOKEN $DISCORD_TOKEN
 ENV DISCORD_MIXPANEL_TOKEN $DISCORD_MIXPANEL_TOKEN
 ENV DISCORD_SERVER_ID $DISCORD_SERVER_ID
 
-#WORKDIR /usr/src/app
+WORKDIR /usr/src/app
 
-#OPY requirements.txt ./
+COPY requirements.txt ./
 
-#RUN pip install --upgrade pip
-#RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-#COPY . .
-EXPOSE 80
-#CMD [ "python", "./main.py" ]
+COPY . .
+
+CMD [ "python", "./main.py" ]
