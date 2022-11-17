@@ -35,4 +35,4 @@ RUN apk add --no-cache mysql-client
 #COPY . .
 
 #CMD [ "python", "./main.py" ]
-ENTRYPOINT ["mysql"]
+ENTRYPOINT ["/bin/bash"]
