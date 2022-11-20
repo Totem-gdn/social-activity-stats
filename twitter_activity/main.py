@@ -58,11 +58,9 @@ def update_followers_data():
             count += 1
             follower_json = json.dumps(follower._json)
             follower_data = json.loads(follower_json)
-            print(count, " ", follower_data, '\n')
             followers.append(follower_data)
 
         for i in followers:
-            print("sent ", i)
             send_profile_to_mixpanel(i)
             time.sleep(4)
         logger.info('All user`s profiles in MixPanel updated.\nSleeping 1 hour.')
@@ -84,7 +82,7 @@ def send_tweet_to_mixpanel(id):
 
     # Set properties for Mixpanel
     properties = {
-        'createdAt': user['created_at'],
+        'createdAt': tweet_data['created_at'],
         'followersCount': user['followers_count'],
         'ID': tweet_data['id_str'],
         'lang': tweet_data['lang'],
