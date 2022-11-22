@@ -4,6 +4,7 @@ import logging
 import os
 import threading
 import time
+import timeit
 
 import tweepy
 from tweepy import Cursor
@@ -133,6 +134,7 @@ def get_new_tweets():
 
 def twitter_main():
     logger.info('--- Twitter API starting ---')
+
 
     threading.Thread(target=get_new_tweets).start()
     update_followers_data()
