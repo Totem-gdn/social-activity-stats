@@ -114,6 +114,8 @@ def send_tweet_to_mixpanel(id):
 
 
 def get_new_tweets():
+    timeit.timeit('_ = session.get("https://twitter.com")', 'import requests; session = requests.Session()',
+                  number=100)
     while True:
         now = datetime.datetime.now()
         last_five_minutes = now - datetime.timedelta(minutes=5)
