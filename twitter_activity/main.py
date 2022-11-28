@@ -27,8 +27,9 @@ auth = tweepy.OAuth1UserHandler(os.environ['TWITTER_CONSUMER_KEY'], os.environ['
 auth.set_access_token(os.environ['TWITTER_ACCESS_TOKEN'], os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
 # Initialization Twitter API
 api = tweepy.API(auth, wait_on_rate_limit=True)
-client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"],consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
-                       consumer_secret=os.environ["TWITTER_CONSUMER_SECRET"], access_token=os.environ["TWITTER_ACCESS_TOKEN"],
+client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
+                       consumer_secret=os.environ["TWITTER_CONSUMER_SECRET"],
+                       access_token=os.environ["TWITTER_ACCESS_TOKEN"],
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
 
@@ -69,7 +70,7 @@ def update_followers_data():
 
 
 def send_tweet_to_mixpanel(id):
-    status = api.get_status(id)
+    status = api.get_status(id, tweet_mode="extended")
     # Convert tweepy.models.Status to JSON
     data_json = json.dumps(status._json)
     # Convert JSON to dict
@@ -88,7 +89,7 @@ def send_tweet_to_mixpanel(id):
         'ID': tweet_data['id_str'],
         'lang': tweet_data['lang'],
         'retweetCount': tweet_data['retweet_count'],
-        'text': tweet_data['text'],
+        'text': tweet_data['full_text'],
         'retweeted': 'False',
         'url': url
     }
@@ -96,7 +97,7 @@ def send_tweet_to_mixpanel(id):
     if len(hashtags) != 0:
         hashtag_str = ''
         for hashtag in hashtags:
-            hashtag_str += ''.join(hashtag['text'] + ',')
+            hashtag_str += ''.join(hashtag['full_text'] + ',')
 
         properties['hashtag'] = hashtag_str.rstrip(',')
 
@@ -111,7 +112,7 @@ def send_tweet_to_mixpanel(id):
 
     # Send to Mixpanel
     mp_client.track(distinct_id, 'NewTweet', properties)
-    logger.info('\nNew tweet: {}'.format(tweet_data['text']))
+    logger.info('\nNew tweet: {}'.format(tweet_data['full_text']))
 
 
 def get_new_tweets():
@@ -134,7 +135,6 @@ def get_new_tweets():
 
 def twitter_main():
     logger.info('--- Twitter API starting ---')
-
 
     threading.Thread(target=get_new_tweets).start()
     update_followers_data()
