@@ -33,7 +33,7 @@ client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
 
-def send_profile_to_mixpanel(user):
+def update_profile_to_mixpanel(user):
     # Set properties for Mixpanel Profile
     properties = {
         'followersCount': user['followers_count'],
@@ -52,21 +52,94 @@ def send_profile_to_mixpanel(user):
     mp_client.people_set(user['id_str'], properties)
 
 
-def update_followers_data():
+def get_followers_data():
     while True:
+        time.sleep(86400)
         count = 0
         followers = []
         for follower in Cursor(api.get_followers, count=200).items():
             count += 1
             follower_json = json.dumps(follower._json)
             follower_data = json.loads(follower_json)
+            # print(count, " ", follower_data, '\n')
             followers.append(follower_data)
 
         for i in followers:
-            send_profile_to_mixpanel(i)
+            # print("sent ",i)
+            update_profile_to_mixpanel(i)
             time.sleep(4)
-        logger.info('All user`s profiles in MixPanel updated.\nSleeping 1 hour.')
-        time.sleep(3600)
+        logger.info('Updated all users data.')
+
+
+def get_follower_ids():
+    followers = []
+    for follower in Cursor(api.get_follower_ids, count=200).items():
+        followers.append(follower)
+    return followers
+
+
+def followers_control():
+    followers_ids = set()
+    while True:
+        global followers_ids
+        updated_list_follower_ids = set(get_follower_ids())
+
+        new_followers = updated_list_follower_ids.difference(followers_ids)
+        unfollowed = followers_ids.difference(updated_list_follower_ids)
+
+        if len(new_followers) != 0 and len(new_followers) < 1500:
+            for i in new_followers:
+                new_follower(i)
+        else:
+            logger.info('Doesn`t have new followers last 15 minuets.')
+
+        if len(unfollowed) != 0:
+            for i in unfollowed:
+                unfollow(i)
+        else:
+            logger.info('Doesn`t have unfollowers last 15 minuets.')
+        followers_ids = updated_list_follower_ids
+        logger.info('Followers checked.')
+        time.sleep(900)
+
+
+def new_follower(user_id):
+    user_data = api.get_user(user_id=user_id)
+    user_json = json.dumps(user_data._json)
+    user = json.loads(user_json)
+
+    properties = {
+        'followersCount': user['followers_count'],
+        'FriendsCount': user['friends_count'],
+        'geoEnabled': str(user['geo_enabled']),
+        'Name': user['name'],
+        'Profile ID': user['id'],
+        'screenName': user['screen_name'],
+        'firstSeenAt': str(datetime.datetime.now())
+    }
+    if 'profile_image_url' in user:
+        properties['profileImgUrl'] = user['profile_image_url']
+    if user['location'] != '':
+        properties['location'] = user['location']
+
+    # Send to MixPanel Profile
+    mp_client.people_set(user['id'], properties)
+    logger.info('New follower: ', user_data['username'])
+    time.sleep(4)
+
+
+def unfollow(user_id):
+    user = api.get_user(user_id=user_id)
+    user_json = json.dumps(user._json)
+    user_data = json.loads(user_json)
+
+    properties = {
+        'Unfollowed': str(datetime.datetime.now())
+    }
+    # Send to MixPanel Profile
+    mp_client.people_append(user_data['id'], properties)
+    logger.info('Unfollwed :', user_data['username'])
+    time.sleep(4)
 
 
 def send_tweet_to_mixpanel(id):
@@ -136,7 +209,10 @@ def get_new_tweets():
 def twitter_main():
     logger.info('--- Twitter API starting ---')
 
-    threading.Thread(target=get_new_tweets).start()
-    update_followers_data()
+    new_tweets_tread = threading.Thread(target=get_new_tweets)
+    followers_control_tread = threading.Thread(target=followers_control)
+    new_tweets_tread.start()
+    followers_control_tread.start()
+    get_followers_data()
 
     logging.info('--- Twitter API done ---')
