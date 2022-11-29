@@ -203,6 +203,7 @@ def get_new_tweets():
         else:
             logger.info('Doesn`t have new tweets for last 5 minutes.')
             pass
+
         time.sleep(300)
 
 
