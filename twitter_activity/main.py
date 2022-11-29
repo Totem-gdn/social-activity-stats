@@ -81,7 +81,6 @@ def get_follower_ids():
 def followers_control():
     followers_ids = set()
     while True:
-        global followers_ids
         updated_list_follower_ids = set(get_follower_ids())
 
         new_followers = updated_list_follower_ids.difference(followers_ids)
@@ -203,7 +202,6 @@ def get_new_tweets():
         else:
             logger.info('Doesn`t have new tweets for last 5 minutes.')
             pass
-
         time.sleep(300)
 
 
