@@ -125,7 +125,7 @@ def new_follower(user_id):
 
     # Send to MixPanel Profile
     mp_client.people_set(user['id'], properties)
-    logger.info('New follower: ', user_data['username'])
+    logger.info('New follower: ', user['id'])
     time.sleep(4)
 
 
@@ -140,7 +140,7 @@ def unfollow(user_id):
     }
     # Send to MixPanel Profile
     mp_client.people_append(user_data['id'], properties)
-    logger.info('Unfollwed :', user_data['username'])
+    logger.info('Unfollowed :', user_data['id'])
     time.sleep(4)
 
 
