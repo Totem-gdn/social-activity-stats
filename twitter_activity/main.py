@@ -41,7 +41,8 @@ def update_profile_to_mixpanel(user):
         'geoEnabled': str(user['geo_enabled']),
         'Name': user['name'],
         'Profile ID': user['id'],
-        'screenName': user['screen_name']
+        'screenName': user['screen_name'],
+        'Unfollowed': 'False'
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -116,7 +117,8 @@ def new_follower(user_id):
         'Name': user['name'],
         'Profile ID': user['id'],
         'screenName': user['screen_name'],
-        'firstSeenAt': follow_time
+        'firstSeenAt': follow_time,
+        'Unfollowed': 'False'
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -139,7 +141,7 @@ def unfollow(user_id):
         'Unfollowed': unfollow_time
     }
     # Send to MixPanel Profile
-    mp_client.people_append(user_data['id'], properties)
+    mp_client.people_set(user_data['id'], properties)
     logger.info('Unfollowed :', user_data['id'])
     time.sleep(4)
 
