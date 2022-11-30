@@ -106,6 +106,8 @@ def new_follower(user_id):
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
+    now_time = datetime.datetime.now()
+    follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
     properties = {
         'followersCount': user['followers_count'],
@@ -114,7 +116,7 @@ def new_follower(user_id):
         'Name': user['name'],
         'Profile ID': user['id'],
         'screenName': user['screen_name'],
-        'firstSeenAt': str(datetime.datetime.now())
+        'firstSeenAt': follow_time
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -131,9 +133,10 @@ def unfollow(user_id):
     user = api.get_user(user_id=user_id)
     user_json = json.dumps(user._json)
     user_data = json.loads(user_json)
-
+    now_time = datetime.datetime.now()
+    unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
     properties = {
-        'Unfollowed': str(datetime.datetime.now())
+        'Unfollowed': unfollow_time
     }
     # Send to MixPanel Profile
     mp_client.people_append(user_data['id'], properties)
@@ -169,7 +172,7 @@ def send_tweet_to_mixpanel(id):
     if len(hashtags) != 0:
         hashtag_str = ''
         for hashtag in hashtags:
-            hashtag_str += ''.join(hashtag['full_text'] + ',')
+            hashtag_str += ''.join(hashtag['text'] + ',')
 
         properties['hashtag'] = hashtag_str.rstrip(',')
 
@@ -192,7 +195,7 @@ def get_new_tweets():
                   number=100)
     while True:
         now = datetime.datetime.now()
-        last_five_minutes = now - datetime.timedelta(minutes=5)
+        last_five_minutes = now - datetime.timedelta(days=2)
         tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"], start_time=last_five_minutes)
         tweet = tweets[0]
         if tweet is not None:
