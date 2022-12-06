@@ -195,19 +195,26 @@ def send_tweet_to_mixpanel(id):
 def get_new_tweets():
     timeit.timeit('_ = session.get("https://twitter.com")', 'import requests; session = requests.Session()',
                   number=100)
+    backoff_counter = 1
     while True:
-        now = datetime.datetime.now()
-        last_five_minutes = now - datetime.timedelta(minutes=5)
-        tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"], start_time=last_five_minutes)
-        tweet = tweets[0]
-        if tweet is not None:
-            for i in tweet:
-                send_tweet_to_mixpanel(i['id'])
-                time.sleep(6)
-        else:
-            logger.info('Doesn`t have new tweets for last 5 minutes.')
-            pass
-        time.sleep(300)
+        try:
+            now = datetime.datetime.now()
+            last_five_minutes = now - datetime.timedelta(minutes=5)
+            tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"], start_time=last_five_minutes)
+            tweet = tweets[0]
+            if tweet is not None:
+                for i in tweet:
+                    send_tweet_to_mixpanel(i['id'])
+                    time.sleep(6)
+            else:
+                logger.info('Doesn`t have new tweets for last 5 minutes.')
+                pass
+            time.sleep(300)
+        except Exception as e:
+            print(e)
+            time.sleep(60 * backoff_counter)
+            backoff_counter += 1
+            continue
 
 
 def twitter_main():
