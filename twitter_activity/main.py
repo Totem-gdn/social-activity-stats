@@ -104,31 +104,35 @@ def followers_control():
 
 
 def new_follower(user_id):
-    user_data = api.get_user(user_id=user_id)
-    user_json = json.dumps(user_data._json)
-    user = json.loads(user_json)
-    now_time = datetime.datetime.now()
-    follow_time = now_time.strftime("%d.%m.%Y %H:%M")
+    try:
+        user_data = api.get_user(user_id=user_id)
+        user_json = json.dumps(user_data._json)
+        user = json.loads(user_json)
+        now_time = datetime.datetime.now()
+        follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
-    properties = {
-        'followersCount': user['followers_count'],
-        'FriendsCount': user['friends_count'],
-        'geoEnabled': str(user['geo_enabled']),
-        'Name': user['name'],
-        'Profile ID': user['id'],
-        'screenName': user['screen_name'],
-        'firstSeenAt': follow_time,
-        'Unfollowed': 'False'
-    }
-    if 'profile_image_url' in user:
-        properties['profileImgUrl'] = user['profile_image_url']
-    if user['location'] != '':
-        properties['location'] = user['location']
+        properties = {
+            'followersCount': user['followers_count'],
+            'FriendsCount': user['friends_count'],
+            'geoEnabled': str(user['geo_enabled']),
+            'Name': user['name'],
+            'Profile ID': user['id'],
+            'screenName': user['screen_name'],
+            'firstSeenAt': follow_time,
+            'Unfollowed': 'False'
+        }
+        if 'profile_image_url' in user:
+            properties['profileImgUrl'] = user['profile_image_url']
+        if user['location'] != '':
+            properties['location'] = user['location']
 
-    # Send to MixPanel Profile
-    mp_client.people_set(user['id'], properties)
-    logger.info('New follower: {}'.format(user['id']))
-    time.sleep(4)
+        # Send to MixPanel Profile
+        mp_client.people_set(user['id'], properties)
+        logger.info('New follower: {}'.format(user['id']))
+        time.sleep(4)
+    except tweepy.errors.NotFound:
+        pass
+
 
 
 def unfollow(user_id):
