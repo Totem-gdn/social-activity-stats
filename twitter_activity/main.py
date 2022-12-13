@@ -134,20 +134,22 @@ def new_follower(user_id):
         pass
 
 
-
 def unfollow(user_id):
-    user = api.get_user(user_id=user_id)
-    user_json = json.dumps(user._json)
-    user_data = json.loads(user_json)
-    now_time = datetime.datetime.now()
-    unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
-    properties = {
-        'Unfollowed': unfollow_time
-    }
-    # Send to MixPanel Profile
-    mp_client.people_set(user_data['id'], properties)
-    logger.info('Unfollowed : {}'.format(user_data['id']))
-    time.sleep(4)
+    try:
+        user = api.get_user(user_id=user_id)
+        user_json = json.dumps(user._json)
+        user_data = json.loads(user_json)
+        now_time = datetime.datetime.now()
+        unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
+        properties = {
+            'Unfollowed': unfollow_time
+        }
+        # Send to MixPanel Profile
+        mp_client.people_set(user_data['id'], properties)
+        logger.info('Unfollowed : {}'.format(user_data['id']))
+        time.sleep(4)
+    except tweepy.errors.NotFound:
+        pass
 
 
 def send_tweet_to_mixpanel(id):
