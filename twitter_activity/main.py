@@ -11,6 +11,7 @@ from tweepy import Cursor
 
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
+from mixpanel_utils import MixpanelUtils
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,15 @@ mp_consumer = AsyncBufferedConsumer(max_size=25)
 # Creating a Mixpanel instance and registering the AsyncBufferedConsumer as the consumer
 mp_client = Mixpanel(os.environ["TWITTER_MIXPANEL_TOKEN"], consumer=mp_consumer)
 
+# Creating a Mixpanel utils
+mputils = MixpanelUtils(
+    os.environ["MIXPANEL_SERVICE_ACCOUNT_SECRET"],
+    service_account_username=os.environ["MIXPANEL_SERVICE_ACCOUNT"],
+    project_id=os.environ['MIXPANEL_PROJECT_ID'],
+    token=os.environ['MIXPANEL_TOKEN'],
+    eu=True
+)
+
 # Get access to Twitter account
 auth = tweepy.OAuth1UserHandler(os.environ['TWITTER_CONSUMER_KEY'], os.environ['TWITTER_CONSUMER_SECRET'])
 auth.set_access_token(os.environ['TWITTER_ACCESS_TOKEN'], os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
@@ -32,6 +42,16 @@ client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer
                        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
+def get_mixpanel_profile_id():
+    data = mputils.query_engage()
+    profile_id = []
+    for i in data:
+        if type(i['$properties']['Profile ID']) == str:
+            profile_id.append(i['$properties']['Profile ID'])
+        else:
+            profile_id.append(int(float(i['$properties']['Profile ID'])))
+    return profile_id
+
 
 def update_profile_to_mixpanel(user):
     # Set properties for Mixpanel Profile
@@ -40,7 +60,7 @@ def update_profile_to_mixpanel(user):
         'FriendsCount': user['friends_count'],
         'geoEnabled': str(user['geo_enabled']),
         'Name': user['name'],
-        'Profile ID': user['id'],
+        'Profile ID': user['id_str'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False'
     }
@@ -55,7 +75,7 @@ def update_profile_to_mixpanel(user):
 
 def get_followers_data():
     while True:
-        time.sleep(86400)
+        #time.sleep(86400)
         count = 0
         followers = []
         for follower in Cursor(api.get_followers, count=200).items():
@@ -229,7 +249,7 @@ def twitter_main():
     new_tweets_tread = threading.Thread(target=get_new_tweets)
     followers_control_tread = threading.Thread(target=followers_control)
     new_tweets_tread.start()
-    followers_control_tread.start()
+    #followers_control_tread.start()
     get_followers_data()
 
     logging.info('--- Twitter API done ---')
