@@ -24,13 +24,6 @@ mp_consumer = AsyncBufferedConsumer(max_size=25)
 mp_client = Mixpanel(os.environ["TWITTER_MIXPANEL_TOKEN"], consumer=mp_consumer)
 
 # Creating a Mixpanel utils
-mputils = MixpanelUtils(
-    os.environ["MIXPANEL_SERVICE_ACCOUNT_SECRET"],
-    service_account_username=os.environ["MIXPANEL_SERVICE_ACCOUNT"],
-    project_id=os.environ['MIXPANEL_PROJECT_ID'],
-    token=os.environ['MIXPANEL_TOKEN'],
-    eu=True
-)
 
 # Get access to Twitter account
 auth = tweepy.OAuth1UserHandler(os.environ['TWITTER_CONSUMER_KEY'], os.environ['TWITTER_CONSUMER_SECRET'])
@@ -42,15 +35,6 @@ client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer
                        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
-def get_mixpanel_profile_id():
-    data = mputils.query_engage()
-    profile_id = []
-    for i in data:
-        if type(i['$properties']['Profile ID']) == str:
-            profile_id.append(i['$properties']['Profile ID'])
-        else:
-            profile_id.append(int(float(i['$properties']['Profile ID'])))
-    return profile_id
 
 
 def update_profile_to_mixpanel(user):
