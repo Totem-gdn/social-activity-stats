@@ -234,6 +234,6 @@ def twitter_main():
     followers_control_tread = threading.Thread(target=followers_control)
     new_tweets_tread.start()
     #followers_control_tread.start()
-    get_followers_data()
+    #get_followers_data()
 
     logging.info('--- Twitter API done ---')
