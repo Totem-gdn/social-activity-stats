@@ -58,8 +58,8 @@ def get_mixpanel_profile_id():
 def update_profile_to_mixpanel(user):
     # Set properties for Mixpanel Profile
     properties = {
-        'followersCount': user['followers_count'],
-        'FriendsCount': user['friends_count'],
+        'followersCount': str(user['followers_count']),
+        'FriendsCount': str(user['friends_count']),
         'geoEnabled': str(user['geo_enabled']),
         'Profile ID': user['id_str'],
         'screenName': user['screen_name'],
