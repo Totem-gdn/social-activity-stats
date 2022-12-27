@@ -62,6 +62,7 @@ def update_profile_to_mixpanel(user):
         'FriendsCount': str(user['friends_count']),
         'geoEnabled': str(user['geo_enabled']),
         'Profile ID': user['id_str'],
+        '$name': user['name'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False'
     }
@@ -70,13 +71,8 @@ def update_profile_to_mixpanel(user):
     if user['location'] != '':
         properties['location'] = user['location']
 
-    name_properties = {
-        '$name': user['name']
-    }
     # Send to MixPanel Profile
     mp_client.people_set(user['id_str'], properties)
-    mp_client.people_set_once(user['id_str'], name_properties)
-
 
 
 def get_followers_data():
@@ -168,6 +164,7 @@ def new_follower(user_id):
         'FriendsCount': str(user['friends_count']),
         'geoEnabled': str(user['geo_enabled']),
         'Profile ID': user['id_str'],
+        '$name': user['name'],
         'screenName': user['screen_name'],
         'firstSeenAt': follow_time,
         'Unfollowed': 'False'
@@ -177,12 +174,8 @@ def new_follower(user_id):
     if user['location'] != '':
         properties['location'] = user['location']
 
-    name_properties = {
-        '$name': user['name']
-    }
     # Send to MixPanel Profile
     mp_client.people_set(user['id_str'], properties)
-    mp_client.people_set_once(user['id_str'], name_properties)
     logger.info('New follower: {}'.format(user['id_str']))
     time.sleep(4)
 
