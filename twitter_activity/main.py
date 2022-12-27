@@ -164,8 +164,8 @@ def new_follower(user_id):
     follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
     properties = {
-        'followersCount': user['followers_count'],
-        'FriendsCount': user['friends_count'],
+        'followersCount': str(user['followers_count']),
+        'FriendsCount': str(user['friends_count']),
         'geoEnabled': str(user['geo_enabled']),
         'Profile ID': user['id_str'],
         'screenName': user['screen_name'],
