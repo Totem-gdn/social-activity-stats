@@ -71,7 +71,7 @@ def update_profile_to_mixpanel(user):
         properties['location'] = user['location']
 
     name_properties = {
-        'Name': user['name']
+        '$name': user['name']
     }
     # Send to MixPanel Profile
     mp_client.people_set(user['id_str'], properties)
@@ -178,7 +178,7 @@ def new_follower(user_id):
         properties['location'] = user['location']
 
     name_properties = {
-        'Name': user['name']
+        '$name': user['name']
     }
     # Send to MixPanel Profile
     mp_client.people_set(user['id_str'], properties)
