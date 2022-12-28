@@ -181,18 +181,19 @@ def new_follower(user_id):
 
 
 def unfollow(user_id):
-    user = api.get_user(user_id=user_id)
-    user_json = json.dumps(user._json)
-    user_data = json.loads(user_json)
     now_time = datetime.datetime.now()
     unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
-    properties = {
-        'Unfollowed': unfollow_time
-    }
-    # Send to MixPanel Profile
-    mp_client.people_set(user_data['id_str'], properties)
-    logger.info('Unfollowed : {}'.format(user_data['id_str']))
-    time.sleep(4)
+    selector = f'(("{user_id}" in properties["Profile ID"])))'
+    parameters = {'selector': selector}
+    data = mputils.query_engage(params=parameters)
+    for i in data:
+        properties = {
+            'Unfollowed': unfollow_time
+        }
+        # Send to MixPanel Profile
+        mp_client.people_set(i['id_str'], properties)
+        logger.info('Unfollowed : {}'.format(i['id_str']))
+        time.sleep(4)
 
 
 def send_tweet_to_mixpanel(id):
