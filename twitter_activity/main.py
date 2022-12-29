@@ -6,6 +6,7 @@ import threading
 import time
 import timeit
 
+import mixpanel
 import tweepy
 from tweepy import Cursor
 
@@ -181,20 +182,24 @@ def new_follower(user_id):
 
 
 def unfollow(user_id):
-    now_time = datetime.datetime.now()
-    unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
-    selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
-    parameters = {'selector': selector}
-    data = mputils.query_engage(params=parameters)
-    for i in data:
-        if i['$properties']['Profile ID'] == user_id:
-            properties = {
-                'Unfollowed': unfollow_time
-            }
-            # Send to MixPanel Profile
-            mp_client.people_set(i['$distinct_id'], properties)
-            logger.info('Unfollowed : {}'.format(i['$distinct_id']))
-            time.sleep(4)
+    try:
+        now_time = datetime.datetime.now()
+        unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
+        selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
+        parameters = {'selector': selector}
+        data = mputils.query_engage(params=parameters)
+        for i in data:
+            if i['$properties']['Profile ID'] == user_id:
+                properties = {
+                    'Unfollowed': unfollow_time
+                }
+                # Send to MixPanel Profile
+                mp_client.people_set(i['$distinct_id'], properties)
+                logger.info('Unfollowed : {}'.format(i['$distinct_id']))
+                time.sleep(4)
+    except Exception as e:
+        print(str(e))
+        time.sleep(360)
 
 
 def send_tweet_to_mixpanel(id):
