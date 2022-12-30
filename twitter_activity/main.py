@@ -111,7 +111,7 @@ def get_followers_data():
                     if followers_diff >= 5 or followers_diff <= -5:
                         update_profile_to_mixpanel(i)
                         logger.info("Updated profile : ", i['screen_name'])
-                        time.sleep(4)
+                        time.sleep(4)  # change magic numbers to constants - "delay to throttle api calls"
                 except ZeroDivisionError:
                     pass
             except KeyError:
@@ -122,31 +122,31 @@ def get_followers_data():
 def get_follower_ids():
     followers = []
     for follower in Cursor(api.get_follower_ids, count=200).items():
-        followers.append(follower)
+        followers.append(str(follower))
     return followers
 
 
 def followers_control():
     while True:
-        followers_ids = set(get_mixpanel_profile_id())
-        string_ids = [str(i) for i in get_follower_ids()]
+        followers_ids = set(get_mixpanel_profile_id())  # TODO clean based on str() and more descriptive variables
+        string_ids = [str(id) for id in get_follower_ids()]
         updated_list_follower_ids = set(string_ids)
 
         new_followers = updated_list_follower_ids.difference(followers_ids)
         unfollowed = followers_ids.difference(updated_list_follower_ids)
 
-        if len(new_followers) != 0:
-            for i in new_followers:
-                new_follower(i)
+        if len(new_followers):
+            for id in new_followers:
+                new_follower(id)
         else:
             print('Doesn`t have new followers last 15 minuets.')
 
-        if len(unfollowed) != 0:
-            for i in unfollowed:
+        if len(unfollowed):
+            for id in unfollowed:
                 try:
-                    unfollow(i)
+                    unfollow(id)
                 except tweepy.errors.NotFound:
-                    logger.error("Not found ", i)
+                    logger.error("Not found ", id)
         else:
             print('Doesn`t have unfollowers last 15 minuets.')
         print('Followers checked.')
@@ -154,6 +154,7 @@ def followers_control():
 
 
 def new_follower(user_id):
+    # TODO add new follower event
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
@@ -182,13 +183,14 @@ def new_follower(user_id):
 
 
 def unfollow(user_id):
+    # TODO add new unfollow event  
     try:
         now_time = datetime.datetime.now()
         unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
         selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
         parameters = {'selector': selector}
-        data = mputils.query_engage(params=parameters)
-        for i in data:
+        data = mputils.query_engage(params=parameters)  # TODO change data to mp_saved_users
+        for i in data:  # TODO rename i to mp_profile
             if i['$properties']['Profile ID'] == user_id:
                 properties = {
                     'Unfollowed': unfollow_time
@@ -274,12 +276,12 @@ def get_new_tweets():
 
 
 def twitter_main():
-    logger.info('--- Twitter API starting ---')
+    logger.info('--- Twitter analysis starting ---')
 
-    new_tweets_tread = threading.Thread(target=get_new_tweets)
-    followers_control_tread = threading.Thread(target=followers_control)
-    new_tweets_tread.start()
-    followers_control_tread.start()
+    new_tweets_thread = threading.Thread(target=get_new_tweets)
+    followers_control_thread = threading.Thread(target=followers_control)
+    new_tweets_thread.start()
+    followers_control_thread.start()
     get_followers_data()
 
-    logging.info('--- Twitter API done ---')
+    logging.info('--- Twitter analysis died ---')
