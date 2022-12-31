@@ -130,26 +130,27 @@ def followers_control():
     while True:
         followers_ids = set(get_mixpanel_profile_id())
         string_ids = [str(i) for i in get_follower_ids()]
-        updated_list_follower_ids = set(string_ids)
+        updated_follower_ids = set(string_ids)
 
-        new_followers = updated_list_follower_ids.difference(followers_ids)
-        unfollowed = followers_ids.difference(updated_list_follower_ids)
+        new_followers = updated_follower_ids.difference(followers_ids)
+        unfollowed = followers_ids.difference(updated_follower_ids)
 
-        if len(new_followers) != 0:
-            for i in new_followers:
-                new_follower(i)
+        if new_followers:
+            for follower_id in new_followers:
+                new_follower(follower_id)
         else:
-            print('Doesn`t have new followers last 15 minuets.')
+            print("No new followers detected.")  # TODO if loging, maybe also log how many were found 
 
-        if len(unfollowed) != 0:
-            for i in unfollowed:
+        if unfollowed:
+            for follower_id in unfollowed:
                 try:
-                    unfollow(i)
+                    unfollow(follower_id)
                 except tweepy.errors.NotFound:
-                    logger.error("Not found ", i)
+                    logger.error("Not found ", follower_id)
         else:
-            print('Doesn`t have unfollowers last 15 minuets.')
-        print('Followers checked.')
+            print("No new unfollowers detected.")
+
+        print("Followers checked.")
         time.sleep(900)
 
 
