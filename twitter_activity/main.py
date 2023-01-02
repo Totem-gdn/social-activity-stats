@@ -44,16 +44,32 @@ mputils = MixpanelUtils(
     eu=True
 )
 
+DELAY_NEW_TWEETS = 300
+DELAY_UPDATE_FOLLOWERS = 900
+DELAY_UPDATE_PROFILES = 86400
+DELAY_SEND_TO_MIXPANEL = 4
+DELAY_ERROR = 360
+UPDATE_THRESHOLD = 5
 
 def get_mixpanel_profile_id():
-    selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
-    parameters = {'selector': selector}
-    data = mputils.query_engage(params=parameters)
-    profile_id = []
+    # Set the selector for the query to find profiles where the Unfollowed property is defined and set to "False"
+    selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
 
-    for i in data:
-        profile_id.append((i['$properties']['Profile ID']))
-    return profile_id
+    # Set the parameters for the query with the selector
+    parameters = {'selector': selector}
+
+    # Get the data from the query
+    mp_profiles_users = mputils.query_engage(params=parameters)
+
+    # Initialize an empty list to store the profile IDs
+    profile_ids = []
+
+    # Iterate through the data and add the profile IDs to the list
+    for profile in mp_profiles_users:
+        profile_ids.append(profile['$properties']['Profile ID'])
+
+    # Return the list of profile IDs
+    return profile_ids
 
 
 def update_profile_to_mixpanel(user):
@@ -77,8 +93,10 @@ def update_profile_to_mixpanel(user):
 
 
 def get_followers_data():
+    # Set the threshold for updating a Mixpanel profile to 5% change in followers count
+
     while True:
-        time.sleep(86400)
+        time.sleep(DELAY_UPDATE_PROFILES)  # Sleep for 86400 seconds (1 day) before checking again
         count = 0
         followers = []
         profiles_followers = {}
@@ -88,78 +106,79 @@ def get_followers_data():
             count += 1
             follower_json = json.dumps(follower._json)
             follower_data = json.loads(follower_json)
-            # print(count, " ", follower_data, '\n')
             followers.append(follower_data)
 
         # Get users profiles from Mixpanel
-        selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
+        selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
         parameters = {'selector': selector}
-        profiles = mputils.query_engage(params=parameters)
+        mp_profiles_users = mputils.query_engage(params=parameters)
 
         # Associate profile id with followers count
-        for i in profiles:
+        for profile in mp_profiles_users:
             try:
-                profiles_followers[i['$properties']['Profile ID']] = i['$properties']['followersCount']
+                profiles_followers[profile['$properties']['Profile ID']] = profile['$properties']['followersCount']
             except KeyError:
-                logger.error("not value ", i)
+                logger.error("Profile is missing a followers count value: ", profile)
 
-        for i in followers:
+        # Check if the followers count for each follower has changed by more than the update threshold
+        for follower in followers:
             try:
-                try:
-                    followers_diff = (int(profiles_followers[i['id_str']]) - int(i['followers_count'])) / int(
-                        profiles_followers[i['id_str']]) * 100
-                    if followers_diff >= 5 or followers_diff <= -5:
-                        update_profile_to_mixpanel(i)
-                        logger.info("Updated profile : ", i['screen_name'])
-                        time.sleep(4)
-                except ZeroDivisionError:
-                    pass
-            except KeyError:
-                logger.info("Didn't find in Mixpanel ", i['screen_name'], "-", i['id_str'])
-        logger.info("Checked follower`s data updates.")
+                followers_diff = (int(profiles_followers[follower['id_str']]) - int(follower['followers_count'])) / int(
+                    profiles_followers[follower['id_str']]) * 100
+                if abs(followers_diff) >= UPDATE_THRESHOLD:
+                    update_profile_to_mixpanel(follower)
+                    logger.info("Updated profile: ", follower['screen_name'])
+                    time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
+            except (KeyError, ZeroDivisionError):
+                logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-", follower['id_str'])
+        logger.info("Checked follower's data updates.")
 
 
-def get_follower_ids():
+def get_twitter_follower_ids():
     followers = []
-    for follower in Cursor(api.get_follower_ids, count=200).items():
-        followers.append(follower)
+    # Get follower IDs from Twitter API
+    for follower_id in Cursor(api.get_follower_ids, count=200).items():
+        followers.append(str(follower_id))
     return followers
 
 
 def followers_control():
     while True:
-        followers_ids = set(get_mixpanel_profile_id())
-        string_ids = [str(i) for i in get_follower_ids()]
-        updated_list_follower_ids = set(string_ids)
+        mp_followers_ids = set(get_mixpanel_profile_id())
+        updated_list_follower_ids = set(get_twitter_follower_ids())
 
-        new_followers = updated_list_follower_ids.difference(followers_ids)
-        unfollowed = followers_ids.difference(updated_list_follower_ids)
+        new_followers = updated_list_follower_ids.difference(mp_followers_ids)
+        unfollowed = mp_followers_ids.difference(updated_list_follower_ids)
 
         if len(new_followers) != 0:
-            for i in new_followers:
-                new_follower(i)
+            for follower_id in new_followers:
+                new_follower(follower_id)
         else:
-            print('Doesn`t have new followers last 15 minuets.')
+            print("Doesn't have new followers last 15 minutes.")
 
         if len(unfollowed) != 0:
-            for i in unfollowed:
+            for follower_id in unfollowed:
                 try:
-                    unfollow(i)
+                    unfollow(follower_id)
                 except tweepy.errors.NotFound:
-                    logger.error("Not found ", i)
+                    logger.error("Follower not found: ", follower_id)
         else:
-            print('Doesn`t have unfollowers last 15 minuets.')
-        print('Followers checked.')
-        time.sleep(900)
+            print("Doesn't have unfollowers last 15 minutes.")
+        print("Followers checked.")
+        time.sleep(DELAY_UPDATE_FOLLOWERS)  # Sleep for 15 minutes before checking again
 
 
 def new_follower(user_id):
+    # Get user data from Twitter API
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
+
+    # Get the current time and format it as a string
     now_time = datetime.datetime.now()
     follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
+    # Set properties for the Mixpanel profile
     properties = {
         'followersCount': str(user['followers_count']),
         'FriendsCount': str(user['friends_count']),
@@ -178,28 +197,28 @@ def new_follower(user_id):
     # Send to MixPanel Profile
     mp_client.people_set(user['id_str'], properties)
     logger.info('New follower: {}'.format(user['id_str']))
-    time.sleep(4)
+    time.sleep(DELAY_SEND_TO_MIXPANEL)
 
 
 def unfollow(user_id):
     try:
         now_time = datetime.datetime.now()
         unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
-        selector = '(("False" in properties["Unfollowed"]) and (defined (properties["Unfollowed"])))'
+        selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
         parameters = {'selector': selector}
-        data = mputils.query_engage(params=parameters)
-        for i in data:
-            if i['$properties']['Profile ID'] == user_id:
+        mp_profiles_users = mputils.query_engage(params=parameters)
+        for profile in mp_profiles_users:
+            if profile['$properties']['Profile ID'] == user_id:
                 properties = {
                     'Unfollowed': unfollow_time
                 }
-                # Send to MixPanel Profile
-                mp_client.people_set(i['$distinct_id'], properties)
-                logger.info('Unfollowed : {}'.format(i['$distinct_id']))
-                time.sleep(4)
+                # Send properties to Mixpanel profile
+                mp_client.people_set(profile['$distinct_id'], properties)
+                logger.info('Unfollowed: {}'.format(profile['$distinct_id']))
+                time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
     except Exception as e:
         print(str(e))
-        time.sleep(360)
+        time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
 def send_tweet_to_mixpanel(id):
@@ -265,7 +284,7 @@ def get_new_tweets():
             else:
                 logger.info('Doesn`t have new tweets for last 5 minutes.')
                 pass
-            time.sleep(300)
+            time.sleep(DELAY_NEW_TWEETS)
         except Exception as e:
             print(e)
             time.sleep(60 * backoff_counter)
@@ -274,7 +293,7 @@ def get_new_tweets():
 
 
 def twitter_main():
-    logger.info('--- Twitter API starting ---')
+    logger.info('--- Twitter analysis starting ---')
 
     new_tweets_tread = threading.Thread(target=get_new_tweets)
     followers_control_tread = threading.Thread(target=followers_control)
@@ -282,4 +301,4 @@ def twitter_main():
     followers_control_tread.start()
     get_followers_data()
 
-    logging.info('--- Twitter API done ---')
+    logger.info('--- Twitter analysis died ---')
