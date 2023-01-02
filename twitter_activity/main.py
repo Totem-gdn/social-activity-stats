@@ -6,13 +6,11 @@ import threading
 import time
 import timeit
 
-import mixpanel
 import tweepy
-from tweepy import Cursor
-
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
 from mixpanel_utils import MixpanelUtils
+from tweepy import Cursor
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +48,7 @@ DELAY_UPDATE_PROFILES = 86400
 DELAY_SEND_TO_MIXPANEL = 4
 DELAY_ERROR = 360
 UPDATE_THRESHOLD = 5
+
 
 def get_mixpanel_profile_id():
     # Set the selector for the query to find profiles where the Unfollowed property is defined and set to "False"
@@ -130,7 +129,8 @@ def get_followers_data():
                     logger.info("Updated profile: ", follower['screen_name'])
                     time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
             except (KeyError, ZeroDivisionError):
-                logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-", follower['id_str'])
+                logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-",
+                            follower['id_str'])
         logger.info("Checked follower's data updates.")
 
 
@@ -198,6 +198,24 @@ def new_follower(user_id):
     mp_client.people_set(user['id_str'], properties)
     logger.info('New follower: {}'.format(user['id_str']))
     time.sleep(DELAY_SEND_TO_MIXPANEL)
+    new_follower_event(user)
+
+
+def new_follower_event(user):
+    distinct_id = user['screen_name']
+
+    # Set properties for the Mixpanel event
+    properties = {
+        'followersCount': str(user['followers_count']),
+        'friendsCount': str(user['friends_count']),
+        '$name': user['name'],
+        'screenName': user['screen_name'],
+        'verified': str(user['verified'])
+    }
+
+    # Create MixPanel event
+    mp_client.track(distinct_id, 'NewFollower', properties)
+    logger.info('NewFollower event: {}'.format(user['id_str']))
 
 
 def unfollow(user_id):
@@ -216,9 +234,26 @@ def unfollow(user_id):
                 mp_client.people_set(profile['$distinct_id'], properties)
                 logger.info('Unfollowed: {}'.format(profile['$distinct_id']))
                 time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
+                unfollower_event(profile)
     except Exception as e:
         print(str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
+
+
+def unfollower_event(user):
+    distinct_id = user['screen_name']
+
+    # Set properties for the Mixpanel event
+    properties = {
+        'followersCount': user['followersCount'],
+        'friendsCount': user['friendsCount'],
+        '$name': user['$name'],
+        'screenName': user['screen_name']
+    }
+
+    # Create MixPanel event
+    mp_client.track(distinct_id, 'Unsubscribe', properties)
+    logger.info('Unfollowed: {}'.format(distinct_id))
 
 
 def send_tweet_to_mixpanel(id):
