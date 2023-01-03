@@ -44,6 +44,7 @@ mputils = MixpanelUtils(
 
 DELAY_NEW_TWEETS = 300
 DELAY_UPDATE_FOLLOWERS = 900
+DELAY_ENGAGMENT_RATE = 900
 DELAY_UPDATE_PROFILES = 86400
 DELAY_SEND_TO_MIXPANEL = 4
 DELAY_ERROR = 360
@@ -72,6 +73,8 @@ def get_mixpanel_profile_id():
 
 
 def update_profile_to_mixpanel(user):
+    profile_url = 'https://twitter.com/' + user['screen_name']
+
     # Set properties for Mixpanel Profile
     properties = {
         'followersCount': str(user['followers_count']),
@@ -80,7 +83,8 @@ def update_profile_to_mixpanel(user):
         'Profile ID': user['id_str'],
         '$name': user['name'],
         'screenName': user['screen_name'],
-        'Unfollowed': 'False'
+        'Unfollowed': 'False',
+        'Profile URL': profile_url
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -88,7 +92,7 @@ def update_profile_to_mixpanel(user):
         properties['location'] = user['location']
 
     # Send to MixPanel Profile
-    mp_client.people_set(user['id_str'], properties)
+    mp_client.people_set(user['screen_name'], properties)
 
 
 def get_followers_data():
@@ -154,7 +158,7 @@ def followers_control():
             for follower_id in new_followers:
                 new_follower(follower_id)
         else:
-            print("Doesn't have new followers last 15 minutes.")
+            logger.info("Doesn't have new followers last 15 minutes.")
 
         if len(unfollowed) != 0:
             for follower_id in unfollowed:
@@ -163,8 +167,8 @@ def followers_control():
                 except tweepy.errors.NotFound:
                     logger.error("Follower not found: ", follower_id)
         else:
-            print("Doesn't have unfollowers last 15 minutes.")
-        print("Followers checked.")
+            logger.info("Doesn't have unfollowers last 15 minutes.")
+        logger.info("Followers checked.")
         time.sleep(DELAY_UPDATE_FOLLOWERS)  # Sleep for 15 minutes before checking again
 
 
@@ -178,6 +182,8 @@ def new_follower(user_id):
     now_time = datetime.datetime.now()
     follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
+    profile_url = 'https://twitter.com/' + user['screen_name']
+
     # Set properties for the Mixpanel profile
     properties = {
         'followersCount': str(user['followers_count']),
@@ -187,7 +193,8 @@ def new_follower(user_id):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'firstSeenAt': follow_time,
-        'Unfollowed': 'False'
+        'Unfollowed': 'False',
+        'Profile URL': profile_url
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -195,7 +202,7 @@ def new_follower(user_id):
         properties['location'] = user['location']
 
     # Send to MixPanel Profile
-    mp_client.people_set(user['id_str'], properties)
+    mp_client.people_set(user['screen_name'], properties)
     logger.info('New follower: {}'.format(user['id_str']))
     time.sleep(DELAY_SEND_TO_MIXPANEL)
     new_follower_event(user)
@@ -236,7 +243,7 @@ def unfollow(user_id):
                 time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
                 unfollower_event(profile)
     except Exception as e:
-        print(str(e))
+        logger.info(str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
@@ -262,7 +269,6 @@ def send_tweet_to_mixpanel(id):
     data_json = json.dumps(status._json)
     # Convert JSON to dict
     tweet_data = json.loads(data_json)
-    print(tweet_data)
     # Get params from tweet data
     user = tweet_data['user']
     hashtags = tweet_data['entities']['hashtags']
@@ -301,6 +307,50 @@ def send_tweet_to_mixpanel(id):
     mp_client.track(distinct_id, 'NewTweet', properties)
     logger.info('\nNew tweet: {}'.format(tweet_data['full_text']))
 
+def get_engagement_rate_event():
+    while True:
+        tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"])
+        retweet_count = 0
+        reply_count = 0
+        like_count = 0
+        quote_count = 0
+        tweet_count = 0
+        for id in tweets[0]:
+            response = client.get_tweets(
+                ids=id['id'],
+                tweet_fields=["public_metrics"],
+                expansions=["attachments.media_keys", 'author_id'],
+                media_fields=["public_metrics"],
+                user_fields=["public_metrics"],
+
+            )
+            followers_count = response.includes['users'][0].public_metrics['followers_count']
+            retweet_count += response.data[0].public_metrics['retweet_count']
+            reply_count += response.data[0].public_metrics['reply_count']
+            like_count += response.data[0].public_metrics['like_count']
+            quote_count += response.data[0].public_metrics['quote_count']
+            tweet_count += 1
+        engagement_rate = (retweet_count + reply_count + like_count + quote_count) / tweet_count / followers_count * 100
+        if 0 <= engagement_rate or engagement_rate <= 0.005:
+            level_engagements_rate = 'Need improvement'
+        elif 0.005 <= engagement_rate or engagement_rate <= 0.037:
+            level_engagements_rate = 'Not bad'
+        elif 0.037 <= engagement_rate or engagement_rate <= 0.098:
+            level_engagements_rate = 'Good'
+        elif 0.098 <= engagement_rate:
+            level_engagements_rate = 'Awesome'
+        else:
+            level_engagements_rate = 'Unknow'
+        properites = {
+            'Likes per tweet': str(like_count / tweet_count),
+            'Replies per tweet': str(reply_count / tweet_count),
+            'Retweet per tweet': str(retweet_count / tweet_count),
+            'Engagement rate': str(engagement_rate),
+            'Level of engagement rate': level_engagements_rate
+        }
+        mp_client.track('TotemGDN', 'EngagementStats',properites)
+        logger.info('EngagementStats event created')
+        time.sleep(DELAY_ENGAGMENT_RATE)
 
 def get_new_tweets():
     timeit.timeit('_ = session.get("https://twitter.com")', 'import requests; session = requests.Session()',
