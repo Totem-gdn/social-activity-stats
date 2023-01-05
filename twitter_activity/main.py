@@ -367,7 +367,7 @@ def get_new_tweets():
                     send_tweet_to_mixpanel(i['id'])
                     time.sleep(6)
             else:
-                logger.info('Doesn`t have new tweets for last 5 minutes.')
+                logger.info('Doesn`t have new tweets for last 5 minutes')
                 pass
             time.sleep(DELAY_NEW_TWEETS)
         except Exception as e:
