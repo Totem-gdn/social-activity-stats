@@ -165,7 +165,7 @@ def followers_control():
                 try:
                     unfollow(follower_id)
                 except tweepy.errors.NotFound:
-                    logger.error("Follower not found: ", follower_id)
+                    logger.error(f"Follower not found: {follower_id}")
         else:
             logger.info("Doesn't have unfollowers last 15 minutes.")
         logger.info("Followers checked.")
@@ -243,7 +243,7 @@ def unfollow(user_id):
                 time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
                 unfollower_event(profile)
     except Exception as e:
-        logger.info(str(e))
+        logger.info('Error :'+str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
@@ -252,8 +252,8 @@ def unfollower_event(user):
 
     # Set properties for the Mixpanel event
     properties = {
-        'followersCount': user['followersCount'],
-        'friendsCount': user['friendsCount'],
+        'followersCount': str(user['followersCount']),
+        'friendsCount': str(user['friendsCount']),
         '$name': user['$name'],
         'screenName': user['screen_name']
     }
