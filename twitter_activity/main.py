@@ -163,7 +163,7 @@ def followers_control():
         if len(unfollowed) != 0:
             for follower_id in unfollowed:
                 try:
-                    unfollow(follower_id)
+                    mark_user_as_unfollowed(follower_id)
                 except tweepy.errors.NotFound:
                     logger.error(f"Follower not found: {follower_id}")
         else:
@@ -225,7 +225,7 @@ def new_follower_event(user):
     logger.info('NewFollower event: {}'.format(user['id_str']))
 
 
-def unfollow(user_id):
+def mark_user_as_unfollowed(user_id):
     try:
         now_time = datetime.datetime.now()
         unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
@@ -242,26 +242,27 @@ def unfollow(user_id):
                 logger.info('Unfollowed: {}'.format(profile['$distinct_id']))
                 time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
                 unfollower_event(profile)
+                time.sleep(6)
     except Exception as e:
         logger.info('Error :'+str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
 def unfollower_event(user):
-    distinct_id = user['screen_name']
+
+    distinct_id = user['$properties']['screenName']
 
     # Set properties for the Mixpanel event
     properties = {
-        'followersCount': str(user['followersCount']),
-        'friendsCount': str(user['friendsCount']),
-        '$name': user['$name'],
-        'screenName': user['screen_name']
+        'followersCount': str(user['$properties']['followersCount']),
+        'friendsCount': str(user['$properties']['FriendsCount']),
+        '$name': user['$properties']['$name'],
+        'screenName': user['$properties']['screenName']
     }
 
     # Create MixPanel event
-    mp_client.track(distinct_id, 'Unsubscribe', properties)
-    logger.info('Unfollowed: {}'.format(distinct_id))
-
+    mp_client.track(distinct_id, 'UserUnfollowed', properties)
+    logger.info('UserUnfollowed event created: {}'.format(distinct_id))
 
 def send_tweet_to_mixpanel(id):
     status = api.get_status(id, tweet_mode="extended")
