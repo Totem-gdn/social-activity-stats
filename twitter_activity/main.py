@@ -380,12 +380,22 @@ def get_new_tweets():
 def twitter_main():
     logger.info('--- Twitter analysis starting ---')
 
+    threads = []
+
     new_tweets_thread = threading.Thread(target=get_new_tweets)
+    threads.append(new_tweets_thread)
     followers_control_thread = threading.Thread(target=followers_control)
+    threads.append(followers_control_thread)
     engagement_rate_thread = threading.Thread(target=get_engagement_rate_event)
-    new_tweets_thread.start()
-    followers_control_thread.start()
-    engagement_rate_thread.start()
-    get_followers_data()
+    threads.append(engagement_rate_thread)
+    get_followers_data_thread = threading.Thread(target=get_followers_data)
+    threads.append(get_followers_data_thread)
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
 
     logger.info('--- Twitter analysis died ---')
