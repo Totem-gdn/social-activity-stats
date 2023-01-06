@@ -244,12 +244,11 @@ def mark_user_as_unfollowed(user_id):
                 unfollower_event(profile)
                 time.sleep(6)
     except Exception as e:
-        logger.info('Error :'+str(e))
+        logger.info('Error :' + str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
 def unfollower_event(user):
-
     distinct_id = user['$properties']['screenName']
 
     # Set properties for the Mixpanel event
@@ -263,6 +262,7 @@ def unfollower_event(user):
     # Create MixPanel event
     mp_client.track(distinct_id, 'UserUnfollowed', properties)
     logger.info('UserUnfollowed event created: {}'.format(distinct_id))
+
 
 def send_tweet_to_mixpanel(id):
     status = api.get_status(id, tweet_mode="extended")
@@ -308,6 +308,7 @@ def send_tweet_to_mixpanel(id):
     mp_client.track(distinct_id, 'NewTweet', properties)
     logger.info('\nNew tweet: {}'.format(tweet_data['full_text']))
 
+
 def get_engagement_rate_event():
     while True:
         tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"])
@@ -332,11 +333,11 @@ def get_engagement_rate_event():
             quote_count += response.data[0].public_metrics['quote_count']
             tweet_count += 1
         engagement_rate = (retweet_count + reply_count + like_count + quote_count) / tweet_count / followers_count * 100
-        if 0 <= engagement_rate or engagement_rate <= 0.005:
+        if 0 <= engagement_rate and engagement_rate <= 0.005:
             level_engagements_rate = 'Need improvement'
-        elif 0.005 <= engagement_rate or engagement_rate <= 0.037:
+        elif 0.005 <= engagement_rate and engagement_rate <= 0.037:
             level_engagements_rate = 'Not bad'
-        elif 0.037 <= engagement_rate or engagement_rate <= 0.098:
+        elif 0.037 <= engagement_rate and engagement_rate <= 0.098:
             level_engagements_rate = 'Good'
         elif 0.098 <= engagement_rate:
             level_engagements_rate = 'Awesome'
@@ -346,12 +347,13 @@ def get_engagement_rate_event():
             'Likes per tweet': str(like_count / tweet_count),
             'Replies per tweet': str(reply_count / tweet_count),
             'Retweet per tweet': str(retweet_count / tweet_count),
-            'Engagement rate': str(engagement_rate),
+            'Engagement rate': str('%.3f' % engagement_rate) + ' %',
             'Level of engagement rate': level_engagements_rate
         }
-        mp_client.track('TotemGDN', 'EngagementStats',properites)
+        mp_client.track('TotemGDN', 'EngagementStats', properites)
         logger.info('EngagementStats event created')
         time.sleep(DELAY_ENGAGMENT_RATE)
+
 
 def get_new_tweets():
     timeit.timeit('_ = session.get("https://twitter.com")', 'import requests; session = requests.Session()',
@@ -397,6 +399,5 @@ def twitter_main():
 
     for thread in threads:
         thread.join()
-
 
     logger.info('--- Twitter analysis died ---')
