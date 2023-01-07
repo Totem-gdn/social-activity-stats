@@ -220,7 +220,8 @@ def new_follower_event(user):
         'friendsCount': str(user['friends_count']),
         '$name': user['name'],
         'screenName': user['screen_name'],
-        'verified': str(user['verified'])
+        'verified': str(user['verified']),
+        'location': user['location']
     }
 
     # Create MixPanel event
