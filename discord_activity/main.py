@@ -106,43 +106,40 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
 
 def member_count():
     while True:
-        # get data of server members
+        # Get data of server members
         url = f"https://discordapp.com/api/guilds/{os.environ['DISCORD_SERVER_ID']}/members"
         headers = {
-            "Authorization": 'Bot ' + os.environ["DISCORD_TOKEN"]
+            "Authorization": "Bot " + os.environ["DISCORD_TOKEN"]
         }
         params = {
             "limit": 1000
         }
         response = requests.get(url=url, headers=headers, params=params)
 
-        # divides into users and bots
+        # Divide into users and bots
         try:
             users = []
             bots = []
             for user_data in response.json():
-                try:
-                    if user_data['user']['bot'] is True:
-                        bots.append(user_data)
-                    else:
-                        users.append(user_data)
-                except KeyError:
+                if user_data.get("user", {}).get("bot", False):
+                    bots.append(user_data)
+                else:
                     users.append(user_data)
         except TypeError:
             logging.error(response.text)
             raise SystemExit
 
-        # send counters to mixpanel
+        # Send counters to mixpanel
         properties = {
             "usersCount": len(users),
             "botsCount": len(bots)
         }
 
         mp_client.track("The mixpanel Bot", "MembersCount", properties)
-        logger.info(f'usersCount: {len(users)} and botsCount: {len(bots)}  sent to mixpanel.')
+        logger.info(f"usersCount: {len(users)} and botsCount: {len(bots)} sent to mixpanel.")
         time.sleep(3600)
 
-
+        
 def discord_main():
     # start the second thread for the infinite operation of the function
     threading.Thread(target=member_count).start()
