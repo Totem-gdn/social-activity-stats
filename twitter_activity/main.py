@@ -48,7 +48,9 @@ DELAY_ENGAGMENT_RATE = 900
 DELAY_UPDATE_PROFILES = 86400
 DELAY_SEND_TO_MIXPANEL = 4
 DELAY_ERROR = 360
+DELAY_NEW_EVENT = 6
 UPDATE_THRESHOLD = 5
+
 
 
 def get_mixpanel_profile_id():
@@ -157,8 +159,9 @@ def followers_control():
         if len(new_followers) != 0:
             for follower_id in new_followers:
                 new_follower(follower_id)
+            logger.info("Found {} new followers".format(len(new_followers)))
         else:
-            logger.info("Doesn't have new followers last 15 minutes.")
+            logger.info("No new followers detected.")
 
         if len(unfollowed) != 0:
             for follower_id in unfollowed:
@@ -167,7 +170,7 @@ def followers_control():
                 except tweepy.errors.NotFound:
                     logger.error(f"Follower not found: {follower_id}")
         else:
-            logger.info("Doesn't have unfollowers last 15 minutes.")
+            logger.info("No new unfollowers detected.")
         logger.info("Followers checked.")
         time.sleep(DELAY_UPDATE_FOLLOWERS)  # Sleep for 15 minutes before checking again
 
@@ -242,9 +245,9 @@ def mark_user_as_unfollowed(user_id):
                 logger.info('Unfollowed: {}'.format(profile['$distinct_id']))
                 time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
                 unfollower_event(profile)
-                time.sleep(6)
+                time.sleep(DELAY_NEW_EVENT)
     except Exception as e:
-        logger.info('Error :' + str(e))
+        logger.error('Error :' + str(e))
         time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
 
 
@@ -316,7 +319,7 @@ def get_engagement_rate_event():
         reply_count = 0
         like_count = 0
         quote_count = 0
-        tweet_count = 0
+        tweets_count = 0
         for id in tweets[0]:
             response = client.get_tweets(
                 ids=id['id'],
@@ -324,15 +327,14 @@ def get_engagement_rate_event():
                 expansions=["attachments.media_keys", 'author_id'],
                 media_fields=["public_metrics"],
                 user_fields=["public_metrics"],
-
             )
             followers_count = response.includes['users'][0].public_metrics['followers_count']
             retweet_count += response.data[0].public_metrics['retweet_count']
             reply_count += response.data[0].public_metrics['reply_count']
             like_count += response.data[0].public_metrics['like_count']
             quote_count += response.data[0].public_metrics['quote_count']
-            tweet_count += 1
-        engagement_rate = (retweet_count + reply_count + like_count + quote_count) / tweet_count / followers_count * 100
+            tweets_count += 1
+        engagement_rate = (retweet_count + reply_count + like_count + quote_count) / tweets_count / followers_count * 100
         if 0 <= engagement_rate and engagement_rate <= 0.005:
             level_engagements_rate = 'Need improvement'
         elif 0.005 <= engagement_rate and engagement_rate <= 0.037:
@@ -344,10 +346,10 @@ def get_engagement_rate_event():
         else:
             level_engagements_rate = 'Unknow'
         properites = {
-            'Likes per tweet': str(like_count / tweet_count),
-            'Replies per tweet': str(reply_count / tweet_count),
-            'Retweet per tweet': str(retweet_count / tweet_count),
-            'Engagement rate': str('%.3f' % engagement_rate) + ' %',
+            'Likes per tweet': str(like_count / tweets_count),
+            'Replies per tweet': str(reply_count / tweets_count),
+            'Retweet per tweet': str(retweet_count / tweets_count),
+            'Engagement rate': str('%.3f' % engagement_rate),
             'Level of engagement rate': level_engagements_rate
         }
         mp_client.track('TotemGDN', 'EngagementStats', properites)
