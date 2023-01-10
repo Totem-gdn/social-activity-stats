@@ -99,9 +99,10 @@ def update_profile_to_mixpanel(user):
 
 def get_followers_data():
     # Set the threshold for updating a Mixpanel profile to 5% change in followers count
-
+    global DELAY_UPDATE_PROFILES
     while True:
         time.sleep(DELAY_UPDATE_PROFILES)  # Sleep for 86400 seconds (1 day) before checking again
+        start_time = time.time()
         count = 0
         followers = []
         profiles_followers = {}
@@ -138,6 +139,9 @@ def get_followers_data():
                 logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-",
                             follower['id_str'])
         logger.info("Checked follower's data updates.")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        DELAY_UPDATE_PROFILES = DELAY_UPDATE_PROFILES - elapsed_time
 
 
 def get_twitter_follower_ids():
@@ -195,7 +199,6 @@ def new_follower(user_id):
         'Profile ID': user['id_str'],
         '$name': user['name'],
         'screenName': user['screen_name'],
-        'firstSeenAt': follow_time,
         'Unfollowed': 'False',
         'Profile URL': profile_url
     }
