@@ -44,13 +44,12 @@ mputils = MixpanelUtils(
 
 DELAY_NEW_TWEETS = 300
 DELAY_UPDATE_FOLLOWERS = 900
-DELAY_ENGAGMENT_RATE = 900
+DELAY_ENGAGMENT_RATE = 3600
 DELAY_UPDATE_PROFILES = 86400
 DELAY_SEND_TO_MIXPANEL = 4
 DELAY_ERROR = 360
 DELAY_NEW_EVENT = 6
 UPDATE_THRESHOLD = 5
-
 
 
 def get_mixpanel_profile_id():
@@ -224,8 +223,10 @@ def new_follower_event(user):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'verified': str(user['verified']),
-        'location': user['location']
+
     }
+    if user['location'] != '':
+        properties['location'] = user['location']
 
     # Create MixPanel event
     mp_client.track(distinct_id, 'NewFollower', properties)
@@ -338,7 +339,8 @@ def get_engagement_rate_event():
             like_count += response.data[0].public_metrics['like_count']
             quote_count += response.data[0].public_metrics['quote_count']
             tweets_count += 1
-        engagement_rate = (retweet_count + reply_count + like_count + quote_count) / tweets_count / followers_count * 100
+        engagement_rate = (
+                                      retweet_count + reply_count + like_count + quote_count) / tweets_count / followers_count * 100
         if 0 <= engagement_rate and engagement_rate <= 0.005:
             level_engagements_rate = 'Need improvement'
         elif 0.005 <= engagement_rate and engagement_rate <= 0.037:
