@@ -133,7 +133,7 @@ def get_followers_data():
                     profiles_followers[follower['id_str']]) * 100
                 if abs(followers_diff) >= UPDATE_THRESHOLD:
                     update_profile_to_mixpanel(follower)
-                    logger.info("Updated profile: ", follower['screen_name'])
+                    logger.info("Updated profile: {}".format(follower['screen_name']))
                     time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
             except (KeyError, ZeroDivisionError):
                 logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-",
