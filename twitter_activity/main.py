@@ -93,7 +93,7 @@ def update_profile_to_mixpanel(user):
         properties['location'] = user['location']
 
     # Send to MixPanel Profile
-    mp_client.people_set(user['screen_name'], properties)
+    mp_client.people_set(user['id_str'], properties)
 
 
 def get_followers_data():
@@ -207,14 +207,14 @@ def new_follower(user_id):
         properties['location'] = user['location']
 
     # Send to MixPanel Profile
-    mp_client.people_set(user['screen_name'], properties)
+    mp_client.people_set(user['id_str'], properties)
     logger.info('New follower: {}'.format(user['id_str']))
     time.sleep(DELAY_SEND_TO_MIXPANEL)
     new_follower_event(user)
 
 
 def new_follower_event(user):
-    distinct_id = user['screen_name']
+    distinct_id = user['id_str']
 
     # Set properties for the Mixpanel event
     properties = {
