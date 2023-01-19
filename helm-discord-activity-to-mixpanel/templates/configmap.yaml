@@ -1,0 +1,11 @@
+{{- if .Values.configmap.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configmap.name }}
+data:
+  {{- range $k, $v := .Values.configmap.context }}
+    {{ $k }}: |-
+      {{ $v }}
+  {{- end }}
+{{- end }}
