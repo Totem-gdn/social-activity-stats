@@ -6,6 +6,7 @@ import threading
 import time
 import timeit
 
+import requests
 import tweepy
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
@@ -75,7 +76,7 @@ def get_mixpanel_profile_id():
 
 def update_profile_to_mixpanel(user):
     profile_url = 'https://twitter.com/' + user['screen_name']
-
+    version = get_last_commit()
     # Set properties for Mixpanel Profile
     properties = {
         'followersCount': str(user['followers_count']),
@@ -85,7 +86,8 @@ def update_profile_to_mixpanel(user):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False',
-        'Profile URL': profile_url
+        'Profile URL': profile_url,
+        'version': version
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -189,7 +191,7 @@ def new_follower(user_id):
     follow_time = now_time.strftime("%d.%m.%Y %H:%M")
 
     profile_url = 'https://twitter.com/' + user['screen_name']
-
+    version = get_last_commit()
     # Set properties for the Mixpanel profile
     properties = {
         'followersCount': str(user['followers_count']),
@@ -199,7 +201,8 @@ def new_follower(user_id):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False',
-        'Profile URL': profile_url
+        'Profile URL': profile_url,
+        'version': version
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -215,7 +218,7 @@ def new_follower(user_id):
 
 def new_follower_event(user):
     distinct_id = user['id_str']
-
+    version = get_last_commit()
     # Set properties for the Mixpanel event
     properties = {
         'followersCount': str(user['followers_count']),
@@ -223,7 +226,7 @@ def new_follower_event(user):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'verified': str(user['verified']),
-
+        'version': version
     }
     if user['location'] != '':
         properties['location'] = user['location']
@@ -258,13 +261,14 @@ def mark_user_as_unfollowed(user_id):
 
 def unfollower_event(user):
     distinct_id = user['$properties']['screenName']
-
+    version = get_last_commit()
     # Set properties for the Mixpanel event
     properties = {
         'followersCount': str(user['$properties']['followersCount']),
         'friendsCount': str(user['$properties']['FriendsCount']),
         '$name': user['$properties']['$name'],
-        'screenName': user['$properties']['screenName']
+        'screenName': user['$properties']['screenName'],
+        'version': version
     }
 
     # Create MixPanel event
@@ -283,7 +287,7 @@ def send_tweet_to_mixpanel(id):
     hashtags = tweet_data['entities']['hashtags']
     distinct_id = user['screen_name']
     url = "https://twitter.com/user/status/{}".format(id)
-
+    version = get_last_commit()
     # Set properties for Mixpanel
     properties = {
         'createdAt': tweet_data['created_at'],
@@ -293,7 +297,8 @@ def send_tweet_to_mixpanel(id):
         'retweetCount': tweet_data['retweet_count'],
         'text': tweet_data['full_text'],
         'retweeted': 'False',
-        'url': url
+        'url': url,
+        'version': version
     }
 
     if len(hashtags) != 0:
@@ -320,6 +325,7 @@ def send_tweet_to_mixpanel(id):
 def get_engagement_rate_event():
     while True:
         tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"])
+        version = get_last_commit()
         retweet_count = 0
         reply_count = 0
         like_count = 0
@@ -356,13 +362,22 @@ def get_engagement_rate_event():
             'Replies per tweet': str(reply_count / tweets_count),
             'Retweet per tweet': str(retweet_count / tweets_count),
             'Engagement rate': str('%.3f' % engagement_rate),
-            'Level of engagement rate': level_engagements_rate
+            'Level of engagement rate': level_engagements_rate,
+            'version': version
         }
         mp_client.track('TotemGDN', 'EngagementStats', properites)
         logger.info('EngagementStats event created')
         time.sleep(DELAY_ENGAGMENT_RATE)
 
+def get_last_commit():
+    # Make a GET request to the GitHub API
+    url = "https://api.github.com/repos/Totem-gdn/social-activity-stats/commits"
+    response = requests.get(url)
 
+    # Extract the hash code of the last commit from the response
+    data = response.json()
+    hash_code = data[0]["sha"]
+    return hash_code[:8]
 def get_new_tweets():
     timeit.timeit('_ = session.get("https://twitter.com")', 'import requests; session = requests.Session()',
                   number=100)
