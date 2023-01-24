@@ -3,9 +3,9 @@ replicaCount: 1
 image:
   repository: 667950714614.dkr.ecr.us-east-1.amazonaws.com/discord-activity-to-mixpanel
   pullPolicy: Always
-  tag: "dev"
+  tag: "prod"
 
-fullnameOverride: "discord-activity-to-mixpanel-dev"
+fullnameOverride: "discord-activity-to-mixpanel"
 containerPort: 5000
 
 resources:
@@ -44,5 +44,4 @@ env:
       DISCORD_TOKEN: ""
       DISCORD_MIXPANEL_TOKEN: ""
       DISCORD_SERVER_ID: ""
-
-  
+    
