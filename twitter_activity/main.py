@@ -217,23 +217,26 @@ def new_follower(user_id):
 
 
 def new_follower_event(user):
-    distinct_id = user['id_str']
-    version = get_last_commit('new_follower_event')
-    # Set properties for the Mixpanel event
-    properties = {
-        'followersCount': str(user['followers_count']),
-        'friendsCount': str(user['friends_count']),
-        '$name': user['name'],
-        'screenName': user['screen_name'],
-        'verified': str(user['verified']),
-        'version': version
-    }
-    if user['location'] != '':
-        properties['location'] = user['location']
+    try:
+        distinct_id = user['id_str']
+        version = get_last_commit('new_follower_event')
+        # Set properties for the Mixpanel event
+        properties = {
+            'followersCount': str(user['followers_count']),
+            'friendsCount': str(user['friends_count']),
+            '$name': user['name'],
+            'screenName': user['screen_name'],
+            'verified': str(user['verified']),
+            'version': version
+        }
+        if user['location'] != '':
+            properties['location'] = user['location']
 
-    # Create MixPanel event
-    mp_client.track(distinct_id, 'NewFollower', properties)
-    logger.info('NewFollower event: {}'.format(user['id_str']))
+        # Create MixPanel event
+        mp_client.track(distinct_id, 'NewFollower', properties)
+        logger.info('NewFollower event: {}'.format(user['id_str']))
+    except tweepy.errors.Forbidden as err:
+        print('User has been suspended')
 
 
 def mark_user_as_unfollowed(user_id):
