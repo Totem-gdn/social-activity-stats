@@ -162,7 +162,10 @@ def followers_control():
 
         if len(new_followers) != 0:
             for follower_id in new_followers:
-                new_follower(follower_id)
+                try:
+                    new_follower(follower_id)
+                except tweepy.errors.Forbidden as err:
+                    print('User has been suspended')
             logger.info("Found {} new followers".format(len(new_followers)))
         else:
             logger.info("No new followers detected.")
