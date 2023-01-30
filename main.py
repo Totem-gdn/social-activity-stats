@@ -1,13 +1,17 @@
 import logging
 import threading
 
-logger = logging.getLogger(__name__)
-
+from github_activity.geo import githubGeo_main
+from github_activity.main import github_main
 from discord_activity.main import discord_main
 from twitter_activity.main import twitter_main
+
+logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     logger.info('--- Social activity starting ---')
     threading.Thread(target=twitter_main).start()
+    threading.Thread(target=github_main).start()
+    threading.Thread(target=githubGeo_main).start()
     discord_main()
     logger.info('--- Social activity done ---')
