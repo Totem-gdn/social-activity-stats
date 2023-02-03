@@ -24,12 +24,6 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
   scaleDownSeconds: 3
 
-tolerations:
-  - key: "dedicated"
-    operator: "Equal"
-    value: "core"
-    effect: "NoSchedule"
-
 env:
       TWITTER_MIXPANEL_SERVICE_ACCOUNT_SECRET: ""
       TWITTER_MIXPANEL_SERVICE_ACCOUNT: ""
