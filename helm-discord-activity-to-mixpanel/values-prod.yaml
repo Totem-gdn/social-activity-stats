@@ -44,4 +44,6 @@ env:
       DISCORD_TOKEN: ""
       DISCORD_MIXPANEL_TOKEN: ""
       DISCORD_SERVER_ID: ""
+      GITHUB_MIXPANEL_TOKEN: ""
+      GITHUB_TOKEN: ""
     
