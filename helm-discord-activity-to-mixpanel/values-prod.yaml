@@ -17,18 +17,12 @@ resources:
     memory: 64Mi
 
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 1
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
   scaleDownSeconds: 3
-
-tolerations:
-  - key: "dedicated"
-    operator: "Equal"
-    value: "core"
-    effect: "NoSchedule"
 
 env:
       TWITTER_MIXPANEL_SERVICE_ACCOUNT_SECRET: ""
