@@ -8,6 +8,7 @@ import timeit
 
 import requests
 import tweepy
+from github import Github
 from mixpanel import Mixpanel
 from mixpanel_async import AsyncBufferedConsumer
 from mixpanel_utils import MixpanelUtils
@@ -42,6 +43,11 @@ mputils = MixpanelUtils(
     token=os.environ["TWITTER_MIXPANEL_TOKEN"],
     eu=True
 )
+USERNAME = 'Totem-gdn'
+# pygithub object
+g = Github(os.environ['GITHUB_TOKEN'])
+# get that user by username
+user = g.get_user(USERNAME)
 
 DELAY_NEW_TWEETS = 300
 DELAY_UPDATE_FOLLOWERS = 900
@@ -390,6 +396,12 @@ def get_new_tweets():
             backoff_counter += 1
             continue
 
+def get_commit_version():
+    repo = user.get_repo('social-activity-stats')
+    file = repo.get_contents('twitter_activity_version.txt')
+    version = file.decoded_content.decode('utf-8')
+
+    return version
 
 def twitter_main():
     logger.info('--- Twitter analysis starting ---')
