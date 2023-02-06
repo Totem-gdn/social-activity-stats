@@ -82,7 +82,7 @@ def get_mixpanel_profile_id():
 
 def update_profile_to_mixpanel(user):
     profile_url = 'https://twitter.com/' + user['screen_name']
-
+    version = get_commit_version()
     # Set properties for Mixpanel Profile
     properties = {
         'followersCount': str(user['followers_count']),
@@ -92,7 +92,8 @@ def update_profile_to_mixpanel(user):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False',
-        'Profile URL': profile_url
+        'Profile URL': profile_url,
+        'Version': version
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -197,7 +198,7 @@ def new_follower(user_id):
     # Get the current time and format it as a string
     now_time = datetime.datetime.now()
     follow_time = now_time.strftime("%d.%m.%Y %H:%M")
-
+    version = get_commit_version()
     profile_url = 'https://twitter.com/' + user['screen_name']
     # Set properties for the Mixpanel profile
     properties = {
@@ -208,7 +209,8 @@ def new_follower(user_id):
         '$name': user['name'],
         'screenName': user['screen_name'],
         'Unfollowed': 'False',
-        'Profile URL': profile_url
+        'Profile URL': profile_url,
+        'Version': version
     }
     if 'profile_image_url' in user:
         properties['profileImgUrl'] = user['profile_image_url']
@@ -225,13 +227,15 @@ def new_follower(user_id):
 def new_follower_event(user):
     try:
         distinct_id = user['id_str']
+        version = get_commit_version()
         # Set properties for the Mixpanel event
         properties = {
             'followersCount': str(user['followers_count']),
             'friendsCount': str(user['friends_count']),
             '$name': user['name'],
             'screenName': user['screen_name'],
-            'verified': str(user['verified'])
+            'verified': str(user['verified']),
+            'Version': version
         }
         if user['location'] != '':
             properties['location'] = user['location']
@@ -250,10 +254,12 @@ def mark_user_as_unfollowed(user_id):
         selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
         parameters = {'selector': selector}
         mp_profiles_users = mputils.query_engage(params=parameters)
+        version = get_commit_version()
         for profile in mp_profiles_users:
             if profile['$properties']['Profile ID'] == user_id:
                 properties = {
-                    'Unfollowed': unfollow_time
+                    'Unfollowed': unfollow_time,
+                    'Version': version
                 }
                 # Send properties to Mixpanel profile
                 mp_client.people_set(profile['$distinct_id'], properties)
@@ -268,13 +274,14 @@ def mark_user_as_unfollowed(user_id):
 
 def unfollower_event(user):
     distinct_id = user['$properties']['screenName']
-
+    version = get_commit_version()
     # Set properties for the Mixpanel event
     properties = {
         'followersCount': str(user['$properties']['followersCount']),
         'friendsCount': str(user['$properties']['FriendsCount']),
         '$name': user['$properties']['$name'],
-        'screenName': user['$properties']['screenName']
+        'screenName': user['$properties']['screenName'],
+        'Version': version
     }
 
     # Create MixPanel event
@@ -292,6 +299,7 @@ def send_tweet_to_mixpanel(id):
     user = tweet_data['user']
     hashtags = tweet_data['entities']['hashtags']
     distinct_id = user['screen_name']
+    version = get_commit_version()
     url = "https://twitter.com/user/status/{}".format(id)
     # Set properties for Mixpanel
     properties = {
@@ -302,7 +310,8 @@ def send_tweet_to_mixpanel(id):
         'retweetCount': tweet_data['retweet_count'],
         'text': tweet_data['full_text'],
         'retweeted': 'False',
-        'url': url
+        'url': url,
+        'Version': version
     }
 
     if len(hashtags) != 0:
@@ -329,6 +338,7 @@ def send_tweet_to_mixpanel(id):
 def get_engagement_rate_event():
     while True:
         tweets = client.get_users_tweets(os.environ["TWITTER_ACCOUNT_ID"])
+        version = get_commit_version()
         retweet_count = 0
         reply_count = 0
         like_count = 0
@@ -365,7 +375,8 @@ def get_engagement_rate_event():
             'Replies per tweet': str(reply_count / tweets_count),
             'Retweet per tweet': str(retweet_count / tweets_count),
             'Engagement rate': str('%.3f' % engagement_rate),
-            'Level of engagement rate': level_engagements_rate
+            'Level of engagement rate': level_engagements_rate,
+            'Version': version
         }
         mp_client.track('TotemGDN', 'EngagementStats', properites)
         logger.info('EngagementStats event created')
