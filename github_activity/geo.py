@@ -45,7 +45,7 @@ def geoGithub():
                 "location": location
             }
 
-            mp_client.track(user, "TestGithubUserGeo", properties)
+            mp_client.track(user, "GithubUserGeo-v2", properties)
             time.sleep(DELAY_NEW_EVENT)
         time.sleep(DELAY_GITHUB_EVENT)
 
