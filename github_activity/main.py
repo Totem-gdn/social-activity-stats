@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -44,19 +45,23 @@ def stats_event():
                         contributions += contributor.contributions
                     print(contributions)
                     url = f'https://api.codetabs.com/v1/loc?github={repo_name}&branch={branch_name}&ignored=.gitignore;'
-                    files = requests.get(url).json()
-                    lines = files[-1]['linesOfCode']
-                    properies = {
-                        'branch': branch_name,
-                        'contributions': str(contributions),
-                        'contributors': str(contributors_count),
-                        'lines': str(lines),
-                        'repo': repo_name,
-                        'stars': str(stars),
-                        'watchers': str(watchers)
-                    }
-                    mp_client.track(distinct_id=repo.full_name, event_name='TestGitHubStats', properties=properies)
-                    time.sleep(6)
+                    try:
+                        files = requests.get(url).json()
+                        lines = files[-1]['linesOfCode']
+                        properies = {
+                            'branch': branch_name,
+                            'contributions': str(contributions),
+                            'contributors': str(contributors_count),
+                            'lines': str(lines),
+                            'repo': repo_name,
+                            'stars': str(stars),
+                            'watchers': str(watchers)
+                        }
+                        mp_client.track(distinct_id=repo.full_name, event_name='GitHubLineStats', properties=properies)
+                        time.sleep(6)
+                    except requests.JSONDecodeError:
+                        logging.info(f"{branch_name} in {repo_name} didn`t get info" )
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         try:

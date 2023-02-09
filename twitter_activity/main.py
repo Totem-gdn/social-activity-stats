@@ -6,7 +6,6 @@ import threading
 import time
 import timeit
 
-import requests
 import tweepy
 from github import Github
 from mixpanel import Mixpanel
@@ -407,12 +406,14 @@ def get_new_tweets():
             backoff_counter += 1
             continue
 
+
 def get_commit_version():
     repo = user.get_repo('social-activity-stats')
     file = repo.get_contents('twitter_activity_version.txt')
     version = file.decoded_content.decode('utf-8')
 
     return version
+
 
 def twitter_main():
     logger.info('--- Twitter analysis starting ---')
