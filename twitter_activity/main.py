@@ -408,10 +408,10 @@ def get_new_tweets():
 
 
 def get_commit_version():
-    repo = user.get_repo('social-activity-stats')
-    file = repo.get_contents('twitter_activity_version.txt')
-    version = file.decoded_content.decode('utf-8')
-
+    version = ''
+    with open('twitter_activity_version.txt') as f:
+        for line in f:
+            version = ''.join(line)
     return version
 
 
