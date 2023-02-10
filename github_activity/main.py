@@ -19,13 +19,16 @@ g = Github(os.environ['GITHUB_TOKEN'])
 # get that user by username
 user = g.get_user(USERNAME)
 DELAY_NEW_EVENT = 6
-DELAY_GITHUB_EVENT = 360
+DELAY_GITHUB_EVENT = 1080
 
 
 def stats_event():
     global  DELAY_GITHUB_EVENT
     while True:
-        time.sleep(DELAY_GITHUB_EVENT)
+        try:
+            time.sleep(DELAY_GITHUB_EVENT)
+        except ValueError:
+            time.sleep(0)
         start_time = time.time()
         for repo in user.get_repos():
             print(repo.full_name)
@@ -64,10 +67,8 @@ def stats_event():
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        try:
-            DELAY_GITHUB_EVENT = DELAY_GITHUB_EVENT - elapsed_time
-        except:
-            DELAY_GITHUB_EVENT = 0
+        DELAY_GITHUB_EVENT = DELAY_GITHUB_EVENT - elapsed_time
+
 
 
 
