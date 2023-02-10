@@ -13,6 +13,8 @@ PROJECT_ID = 2733685
 mp_consumer = AsyncBufferedConsumer(max_size=25)
 # Creating a Mixpanel instance and registering the AsyncBufferedConsumer as the consumer
 mp_client = Mixpanel(os.environ['GITHUB_MIXPANEL_TOKEN'], consumer=mp_consumer)
+
+
 def geoGithub():
     while True:
         url = f"https://api.github.com/orgs/Totem-gdn/repos"
