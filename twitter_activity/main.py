@@ -135,15 +135,18 @@ def get_followers_data():
         # Check if the followers count for each follower has changed by more than the update threshold
         for follower in followers:
             try:
-                followers_diff = (int(profiles_followers[follower['id_str']]) - int(follower['followers_count'])) / int(
-                    profiles_followers[follower['id_str']]) * 100
-                if abs(followers_diff) >= UPDATE_THRESHOLD:
-                    update_profile_to_mixpanel(follower)
-                    logger.info("Updated profile: {}".format(follower['screen_name']))
-                    time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
-            except (KeyError, ZeroDivisionError):
-                logger.info("Profile not found in Mixpanel or followers count is zero: ", follower['screen_name'], "-",
-                            follower['id_str'])
+                try:
+                    followers_diff = (int(profiles_followers[follower['id_str']]) - int(follower['followers_count'])) / int(
+                        profiles_followers[follower['id_str']]) * 100
+                    if abs(followers_diff) >= UPDATE_THRESHOLD:
+                        update_profile_to_mixpanel(follower)
+                        logger.info("Updated profile: {}".format(follower['screen_name']))
+                        time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
+                except ZeroDivisionError:
+                    logger.info("Profile followers count is zero: ", follower['screen_name'], "-",
+                                follower['id_str'])
+            except KeyError:
+                logger.info("Profile not found {}".format(follower))
         logger.info("Checked follower's data updates.")
         end_time = time.time()
         elapsed_time = end_time - start_time
