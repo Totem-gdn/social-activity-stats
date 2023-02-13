@@ -136,7 +136,8 @@ def get_followers_data():
         for follower in followers:
             try:
                 try:
-                    followers_diff = (int(profiles_followers[follower['id_str']]) - int(follower['followers_count'])) / int(
+                    followers_diff = (int(profiles_followers[follower['id_str']]) - int(
+                        follower['followers_count'])) / int(
                         profiles_followers[follower['id_str']]) * 100
                     if abs(followers_diff) >= UPDATE_THRESHOLD:
                         update_profile_to_mixpanel(follower)
@@ -413,8 +414,7 @@ def get_new_tweets():
 def get_commit_version():
     version = ''
     with open('twitter_activity_version.txt') as f:
-        for line in f:
-            version = ''.join(line)
+        version = f.read()
     return version
 
 
