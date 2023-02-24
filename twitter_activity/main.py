@@ -144,8 +144,7 @@ def get_followers_data():
                         logger.info("Updated profile: {}".format(follower['screen_name']))
                         time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
                 except ZeroDivisionError:
-                    logger.info("Profile followers count is zero: ", follower['screen_name'], "-",
-                                follower['id_str'])
+                    logger.info("Profile followers count is zero: {}-{}".format(follower['screen_name'],follower['id_str']))
             except KeyError:
                 logger.info("Profile not found {}".format(follower))
         logger.info("Checked follower's data updates.")
