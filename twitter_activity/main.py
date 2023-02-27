@@ -35,13 +35,7 @@ client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer
                        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
-mputils = MixpanelUtils(
-    os.environ["TWITTER_MIXPANEL_SERVICE_ACCOUNT_SECRET"],
-    service_account_username=os.environ["TWITTER_MIXPANEL_SERVICE_ACCOUNT"],
-    project_id=os.environ["TWITTER_MIXPANEL_PROJECT_ID"],
-    token=os.environ["TWITTER_MIXPANEL_TOKEN"],
-    eu=True
-)
+
 USERNAME = 'Totem-gdn'
 # pygithub object
 g = Github(os.environ['GITHUB_TOKEN'])
@@ -51,106 +45,43 @@ user = g.get_user(USERNAME)
 DELAY_NEW_TWEETS = 300
 DELAY_UPDATE_FOLLOWERS = 900
 DELAY_ENGAGMENT_RATE = 3600
-DELAY_UPDATE_PROFILES = 86400
-DELAY_SEND_TO_MIXPANEL = 4
 DELAY_ERROR = 360
 DELAY_NEW_EVENT = 6
 UPDATE_THRESHOLD = 5
 
-
-def get_mixpanel_profile_id():
-    # Set the selector for the query to find profiles where the Unfollowed property is defined and set to "False"
-    selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
-
-    # Set the parameters for the query with the selector
-    parameters = {'selector': selector}
-
-    # Get the data from the query
-    mp_profiles_users = mputils.query_engage(params=parameters)
-
-    # Initialize an empty list to store the profile IDs
-    profile_ids = []
-
-    # Iterate through the data and add the profile IDs to the list
-    for profile in mp_profiles_users:
-        profile_ids.append(profile['$properties']['Profile ID'])
-
-    # Return the list of profile IDs
-    return profile_ids
+# Load previous followers from file
+with open('previous_followers.json', 'r') as f:
+    previous_followers = set(json.load(f))
 
 
-def update_profile_to_mixpanel(user):
-    profile_url = 'https://twitter.com/' + user['screen_name']
-    version = get_commit_version()
-    # Set properties for Mixpanel Profile
-    properties = {
-        'followersCount': str(user['followers_count']),
-        'FriendsCount': str(user['friends_count']),
-        'geoEnabled': str(user['geo_enabled']),
-        'Profile ID': user['id_str'],
-        '$name': user['name'],
-        'screenName': user['screen_name'],
-        'Unfollowed': 'False',
-        'Profile URL': profile_url,
-        'Version': version
-    }
-    if 'profile_image_url' in user:
-        properties['profileImgUrl'] = user['profile_image_url']
-    if user['location'] != '':
-        properties['location'] = user['location']
-
-    # Send to MixPanel Profile
-    mp_client.people_set(user['id_str'], properties)
-
-
-def get_followers_data():
-    # Set the threshold for updating a Mixpanel profile to 5% change in followers count
-    global DELAY_UPDATE_PROFILES
+def followers_control():
     while True:
-        time.sleep(DELAY_UPDATE_PROFILES)  # Sleep for 86400 seconds (1 day) before checking again
-        start_time = time.time()
-        count = 0
-        followers = []
-        profiles_followers = {}
+        global previous_followers
 
-        # Get followers data from Twitter
-        for follower in Cursor(api.get_followers, count=200).items():
-            count += 1
-            follower_json = json.dumps(follower._json)
-            follower_data = json.loads(follower_json)
-            followers.append(follower_data)
+        # Get your followers
+        followers_id = get_twitter_follower_ids()
 
-        # Get users profiles from Mixpanel
-        selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
-        parameters = {'selector': selector}
-        mp_profiles_users = mputils.query_engage(params=parameters)
+        # Compare followers
+        current_followers = set(followers_id)
+        new_followers = current_followers - previous_followers
+        unfollowers = previous_followers - current_followers
 
-        # Associate profile id with followers count
-        for profile in mp_profiles_users:
-            try:
-                profiles_followers[profile['$properties']['Profile ID']] = profile['$properties']['followersCount']
-            except KeyError:
-                logger.error("Profile is missing a followers count value: ", profile)
+        # Update previous_followers
+        with open('previous_followers.json', 'w') as f:
+            # Write the set to the file using JSON encoding
+            json.dump(list(current_followers), f)
 
-        # Check if the followers count for each follower has changed by more than the update threshold
-        for follower in followers:
-            try:
-                try:
-                    followers_diff = (int(profiles_followers[follower['id_str']]) - int(
-                        follower['followers_count'])) / int(
-                        profiles_followers[follower['id_str']]) * 100
-                    if abs(followers_diff) >= UPDATE_THRESHOLD:
-                        update_profile_to_mixpanel(follower)
-                        logger.info("Updated profile: {}".format(follower['screen_name']))
-                        time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before updating the next profile
-                except ZeroDivisionError:
-                    logger.info("Profile followers count is zero: {}-{}".format(follower['screen_name'],follower['id_str']))
-            except KeyError:
-                logger.info("Profile not found {}".format(follower))
-        logger.info("Checked follower's data updates.")
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        DELAY_UPDATE_PROFILES = DELAY_UPDATE_PROFILES - elapsed_time
+        if len(new_followers) < 1000:
+            for follower_id in new_followers:
+                new_follower_event(follower_id)
+                logger.info("New followers: {}".format(follower_id))
+
+            for unfollower_id in unfollowers:
+                unfollower_event(unfollower_id)
+                logger.info("Unfollowers: {}".format(unfollowers))
+        else:
+            logger.info("Previous followers updated")
+        time.sleep(DELAY_UPDATE_FOLLOWERS)
 
 
 def get_twitter_follower_ids():
@@ -161,72 +92,12 @@ def get_twitter_follower_ids():
     return followers
 
 
-def followers_control():
-    while True:
-        mp_followers_ids = set(get_mixpanel_profile_id())
-        updated_list_follower_ids = set(get_twitter_follower_ids())
-
-        new_followers = updated_list_follower_ids.difference(mp_followers_ids)
-        unfollowed = mp_followers_ids.difference(updated_list_follower_ids)
-
-        if len(new_followers) != 0:
-            for follower_id in new_followers:
-                try:
-                    new_follower(follower_id)
-                except tweepy.errors.Forbidden as err:
-                    print('User has been suspended')
-            logger.info("Found {} new followers".format(len(new_followers)))
-        else:
-            logger.info("No new followers detected.")
-
-        if len(unfollowed) != 0:
-            for follower_id in unfollowed:
-                try:
-                    mark_user_as_unfollowed(follower_id)
-                except tweepy.errors.NotFound:
-                    logger.error(f"Follower not found: {follower_id}")
-        else:
-            logger.info("No new unfollowers detected.")
-        logger.info("Followers checked.")
-        time.sleep(DELAY_UPDATE_FOLLOWERS)  # Sleep for 15 minutes before checking again
-
-
-def new_follower(user_id):
+def new_follower_event(user_id):
     # Get user data from Twitter API
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
 
-    # Get the current time and format it as a string
-    now_time = datetime.datetime.now()
-    follow_time = now_time.strftime("%d.%m.%Y %H:%M")
-    version = get_commit_version()
-    profile_url = 'https://twitter.com/' + user['screen_name']
-    # Set properties for the Mixpanel profile
-    properties = {
-        'followersCount': str(user['followers_count']),
-        'FriendsCount': str(user['friends_count']),
-        'geoEnabled': str(user['geo_enabled']),
-        'Profile ID': user['id_str'],
-        '$name': user['name'],
-        'screenName': user['screen_name'],
-        'Unfollowed': 'False',
-        'Profile URL': profile_url,
-        'Version': version
-    }
-    if 'profile_image_url' in user:
-        properties['profileImgUrl'] = user['profile_image_url']
-    if user['location'] != '':
-        properties['location'] = user['location']
-
-    # Send to MixPanel Profile
-    mp_client.people_set(user['id_str'], properties)
-    logger.info('New follower: {}'.format(user['id_str']))
-    time.sleep(DELAY_SEND_TO_MIXPANEL)
-    new_follower_event(user)
-
-
-def new_follower_event(user):
     try:
         distinct_id = user['id_str']
         version = get_commit_version()
@@ -249,46 +120,28 @@ def new_follower_event(user):
         print('User has been suspended')
 
 
-def mark_user_as_unfollowed(user_id):
+def unfollower_event(user_id):
+    # Get user data from Twitter API
+    user_data = api.get_user(user_id=user_id)
+    user_json = json.dumps(user_data._json)
+    user = json.loads(user_json)
     try:
-        now_time = datetime.datetime.now()
-        unfollow_time = now_time.strftime("%d.%m.%Y %H:%M")
-        selector = '(defined (properties["Unfollowed"]) and properties["Unfollowed"] == "False")'
-        parameters = {'selector': selector}
-        mp_profiles_users = mputils.query_engage(params=parameters)
         version = get_commit_version()
-        for profile in mp_profiles_users:
-            if profile['$properties']['Profile ID'] == user_id:
-                properties = {
-                    'Unfollowed': unfollow_time,
-                    'Version': version
-                }
-                # Send properties to Mixpanel profile
-                mp_client.people_set(profile['$distinct_id'], properties)
-                logger.info('Unfollowed: {}'.format(profile['$distinct_id']))
-                time.sleep(DELAY_SEND_TO_MIXPANEL)  # Sleep for 4 seconds before unfollowing the next user
-                unfollower_event(profile)
-                time.sleep(DELAY_NEW_EVENT)
-    except Exception as e:
-        logger.error('Error :' + str(e))
-        time.sleep(DELAY_ERROR)  # Sleep for 360 seconds before trying again
+        distinct_id = user['id_str']
+        # Set properties for the Mixpanel event
+        properties = {
+            'followersCount': str(user['followers_count']),
+            'friendsCount': str(user['friends_count']),
+            '$name': user['name'],
+            'screenName': user['screen_name'],
+            'Version': version
+        }
 
-
-def unfollower_event(user):
-    distinct_id = user['$properties']['screenName']
-    version = get_commit_version()
-    # Set properties for the Mixpanel event
-    properties = {
-        'followersCount': str(user['$properties']['followersCount']),
-        'friendsCount': str(user['$properties']['FriendsCount']),
-        '$name': user['$properties']['$name'],
-        'screenName': user['$properties']['screenName'],
-        'Version': version
-    }
-
-    # Create MixPanel event
-    mp_client.track(distinct_id, 'UnfollowedCount', properties)
-    logger.info('UserUnfollowed event created: {}'.format(distinct_id))
+        # Create MixPanel event
+        mp_client.track(distinct_id, 'UnfollowedCount', properties)
+        logger.info('UserUnfollowed event created: {}'.format(distinct_id))
+    except tweepy.errors.Forbidden as err:
+        print('User has been suspended')
 
 
 def send_tweet_to_mixpanel(id):
@@ -362,11 +215,11 @@ def get_engagement_rate_event():
             tweets_count += 1
         engagement_rate = (
                                   retweet_count + reply_count + like_count + quote_count) / tweets_count / followers_count * 100
-        if 0 <= engagement_rate and engagement_rate <= 0.005:
+        if 0 <= engagement_rate <= 0.005:
             level_engagements_rate = 'Need improvement'
-        elif 0.005 <= engagement_rate and engagement_rate <= 0.037:
+        elif 0.005 <= engagement_rate <= 0.037:
             level_engagements_rate = 'Not bad'
-        elif 0.037 <= engagement_rate and engagement_rate <= 0.098:
+        elif 0.037 <= engagement_rate <= 0.098:
             level_engagements_rate = 'Good'
         elif 0.098 <= engagement_rate:
             level_engagements_rate = 'Awesome'
@@ -411,7 +264,6 @@ def get_new_tweets():
 
 
 def get_commit_version():
-    version = ''
     with open('twitter_activity_version.txt') as f:
         version = f.read()
     return version
@@ -428,8 +280,6 @@ def twitter_main():
     threads.append(followers_control_thread)
     engagement_rate_thread = threading.Thread(target=get_engagement_rate_event)
     threads.append(engagement_rate_thread)
-    get_followers_data_thread = threading.Thread(target=get_followers_data)
-    threads.append(get_followers_data_thread)
 
     for thread in threads:
         thread.start()

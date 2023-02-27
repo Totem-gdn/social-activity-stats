@@ -38,6 +38,19 @@ def get_event_properties(event):
         #		"timestamp": event.message.timestamp,
     }
 
+def get_blockchain_address(username):
+    url = "https://script.google.com/macros/s/AKfycbxW4mYX05-5lvafVRA2qLkinqoE3A0jVWeF9Mq8KoSaYAzrgZ-jooe3gVwfjkkRN7m8/exec"
+    params = {"username": username}
+
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        blockchain_address = response.text
+        logger.info(f"The blockchain address for {username} is {blockchain_address}.")
+        return blockchain_address
+    else:
+        logger.error("Error:", response.status_code)
+        return None
 
 def send_to_mixpanel(event, properties):
     dbg = ''  # use '-dbueg' when runing locally
@@ -50,7 +63,7 @@ async def on_message_create(event: hikari.GuildMessageCreateEvent):
     logger.debug(f"event: {event}")
 
     properties = get_event_properties(event)
-
+    properties['blockchain_address'] = get_blockchain_address(event.author.username)
     cha = bot.cache.get_guild_channel(event.channel_id)
     if cha is None:
         logger.debug(f"{event.channel_id} not cached, fetching")
@@ -88,7 +101,7 @@ async def on_reaction_add(event: hikari.GuildReactionAddEvent):
         await bot._cache.set_guild_channel(cha)
 
     properties = get_event_properties(event)
-
+    properties['blockchain_address'] = get_blockchain_address(event.member.username)
     # if emoji is a custom emoji set its name to emoji_id:emoji_name | else set it to the unicode emoji
     if event.emoji_id:
         emoji_name = f"{event.emoji_name}(Custom)"
