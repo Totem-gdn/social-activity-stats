@@ -73,12 +73,18 @@ def followers_control():
 
         if len(new_followers) < 1000:
             for follower_id in new_followers:
-                new_follower_event(follower_id)
-                logger.info("New followers: {}".format(follower_id))
+                try:
+                    new_follower_event(follower_id)
+                    logger.info("New followers: {}".format(follower_id))
+                except tweepy.errors.NotFound:
+                    logger.error("User with id {} not found".format(follower_id))
 
             for unfollower_id in unfollowers:
-                unfollower_event(unfollower_id)
-                logger.info("Unfollowers: {}".format(unfollowers))
+                try:
+                    unfollower_event(unfollower_id)
+                    logger.info("Unfollowers: {}".format(unfollowers))
+                except tweepy.errors.NotFound:
+                    logger.error("User with id {} not found".format(follower_id))
         else:
             logger.info("Previous followers updated")
         time.sleep(DELAY_UPDATE_FOLLOWERS)
