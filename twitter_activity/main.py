@@ -6,6 +6,7 @@ import threading
 import time
 import timeit
 
+import requests
 import tweepy
 from github import Github
 from mixpanel import Mixpanel
@@ -53,7 +54,20 @@ UPDATE_THRESHOLD = 5
 with open('previous_followers.json', 'r') as f:
     previous_followers = set(json.load(f))
 
+def get_blockchain_address(twitter_link):
+    url = "https://script.google.com/macros/s/AKfycbwebybEYuhquzV9MMs74HJd0Hv01y0krWV-Qa1ta2Fy-ybLb4cz55rcFeIPOflNs6zd/exec"
 
+    params = {"twitter_link": twitter_link}
+
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        blockchain_address = response.text
+        print(f"The blockchain address for {twitter_link} is: {blockchain_address}")
+    else:
+        blockchain_address = None
+        print(f"Error: {response.text}")
+    return blockchain_address
 def followers_control():
     while True:
         global previous_followers
@@ -103,7 +117,7 @@ def new_follower_event(user_id):
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
-
+    twitter_link = 'https://twitter.com/' + user['screen_name']
     try:
         distinct_id = user['id_str']
         version = get_commit_version()
@@ -114,7 +128,8 @@ def new_follower_event(user_id):
             '$name': user['name'],
             'screenName': user['screen_name'],
             'verified': str(user['verified']),
-            'Version': version
+            'Version': version,
+            'blockchainAddress': get_blockchain_address(twitter_link)
         }
         if user['location'] != '':
             properties['location'] = user['location']
@@ -131,6 +146,7 @@ def unfollower_event(user_id):
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
+    twitter_link = 'https://twitter.com/' + user['screen_name']
     try:
         version = get_commit_version()
         distinct_id = user['id_str']
@@ -140,7 +156,8 @@ def unfollower_event(user_id):
             'friendsCount': str(user['friends_count']),
             '$name': user['name'],
             'screenName': user['screen_name'],
-            'Version': version
+            'Version': version,
+            'blockchainAddress': get_blockchain_address(twitter_link)
         }
 
         # Create MixPanel event
