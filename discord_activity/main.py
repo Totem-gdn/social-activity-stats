@@ -39,7 +39,7 @@ def get_event_properties(event):
     }
 
 def get_blockchain_address(username):
-    url = "https://script.google.com/macros/s/AKfycbwebybEYuhquzV9MMs74HJd0Hv01y0krWV-Qa1ta2Fy-ybLb4cz55rcFeIPOflNs6zd/exec"
+    url = "https://script.google.com/macros/s/AKfycbxChdtPvHwetbIaGJqjbx2IkSI-zBOZIB7z3Gxss2TwuMikbWyqjbuWr4MEIjUrY4IO/exec"
     params = {"username": username}
 
     response = requests.get(url, params=params)

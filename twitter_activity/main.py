@@ -43,6 +43,7 @@ g = Github(os.environ['GITHUB_TOKEN'])
 # get that user by username
 user = g.get_user(USERNAME)
 
+
 DELAY_NEW_TWEETS = 300
 DELAY_UPDATE_FOLLOWERS = 900
 DELAY_ENGAGMENT_RATE = 3600
@@ -55,7 +56,7 @@ with open('previous_followers.json', 'r') as f:
     previous_followers = set(json.load(f))
 
 def get_blockchain_address(twitter_link):
-    url = "https://script.google.com/macros/s/AKfycbwebybEYuhquzV9MMs74HJd0Hv01y0krWV-Qa1ta2Fy-ybLb4cz55rcFeIPOflNs6zd/exec"
+    url = "https://script.google.com/macros/s/AKfycbxChdtPvHwetbIaGJqjbx2IkSI-zBOZIB7z3Gxss2TwuMikbWyqjbuWr4MEIjUrY4IO/exec"
 
     params = {"twitter_link": twitter_link}
 
@@ -146,7 +147,7 @@ def unfollower_event(user_id):
     user_data = api.get_user(user_id=user_id)
     user_json = json.dumps(user_data._json)
     user = json.loads(user_json)
-    twitter_link = 'https://twitter.com/' + user['screen_name']
+
     try:
         version = get_commit_version()
         distinct_id = user['id_str']
@@ -157,7 +158,7 @@ def unfollower_event(user_id):
             '$name': user['name'],
             'screenName': user['screen_name'],
             'Version': version,
-            'blockchainAddress': get_blockchain_address(twitter_link)
+            'blockchainAddress': get_blockchain_address(user['screen_name'])
         }
 
         # Create MixPanel event
