@@ -1,11 +1,11 @@
 replicaCount: 1
 
 image:
-  repository: 667950714614.dkr.ecr.us-east-1.amazonaws.com/discord-activity-to-mixpanel
+  repository: 667950714614.dkr.ecr.us-east-2.amazonaws.com/social-activity-stats
   pullPolicy: Always
   tag: "prod"
 
-fullnameOverride: "discord-activity-to-mixpanel"
+fullnameOverride: "social-activity-stats"
 containerPort: 5000
 
 resources:
@@ -25,19 +25,5 @@ autoscaling:
   scaleDownSeconds: 3
 
 env:
-      TWITTER_MIXPANEL_SERVICE_ACCOUNT_SECRET: ""
-      TWITTER_MIXPANEL_SERVICE_ACCOUNT: ""
-      TWITTER_MIXPANEL_PROJECT_ID: ""
-      TWITTER_ACCESS_TOKEN: ""
-      TWITTER_ACCESS_TOKEN_SECRET: ""
-      TWITTER_BEARER_TOKEN: ""
-      TWITTER_CONSUMER_KEY: ""
-      TWITTER_CONSUMER_SECRET: ""
-      TWITTER_MIXPANEL_TOKEN: ""
-      TWITTER_ACCOUNT_ID: ""
-      DISCORD_TOKEN: ""
-      DISCORD_MIXPANEL_TOKEN: ""
-      DISCORD_SERVER_ID: ""
-      GITHUB_MIXPANEL_TOKEN: ""
-      GITHUB_TOKEN: ""
+    ENV: ""
     
