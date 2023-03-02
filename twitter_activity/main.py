@@ -96,10 +96,13 @@ def followers_control():
 
             for unfollower_id in unfollowers:
                 try:
-                    unfollower_event(unfollower_id)
-                    logger.info("Unfollowers: {}".format(unfollowers))
-                except tweepy.errors.NotFound:
-                    logger.error("User with id {} not found".format(unfollower_id))
+                    try:
+                        unfollower_event(unfollower_id)
+                        logger.info("Unfollowers: {}".format(unfollowers))
+                    except tweepy.errors.NotFound:
+                        logger.error("User with id {} not found".format(unfollower_id))
+                except tweepy.errors.Forbidden:
+                    logger.error("User with id {} frozen".format(unfollower_id))
         else:
             logger.info("Previous followers updated")
         time.sleep(DELAY_UPDATE_FOLLOWERS)

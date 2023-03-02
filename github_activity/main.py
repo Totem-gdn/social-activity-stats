@@ -31,7 +31,6 @@ def stats_event():
             time.sleep(0)
         start_time = time.time()
         for repo in user.get_repos():
-            print(repo.full_name)
             repo_name = repo.full_name
             if repo_name != 'Totem-gdn/.github':
                 branches = repo.get_branches()
@@ -58,15 +57,15 @@ def stats_event():
                                 'stars': str(stars),
                                 'watchers': str(watchers)
                             }
-                            mp_client.track(distinct_id=repo.full_name, event_name='GitHubLineStats', properties=properies)
-                            logging.info(
-                                "Sent to MixPanel {} branch {}".format(repo_name, branch_name))
+                            mp_client.track(distinct_id=repo.full_name, event_name='GitHubLineStats',
+                                            properties=properies)
                             time.sleep(6)
                         except KeyError:
                             logging.info(
                                 "Not found info about code lenght in {} branch {}".format(repo_name, branch_name))
                     except requests.JSONDecodeError:
                         logging.info(f"{branch_name} in {repo_name} didn`t get info")
+            logging.info("Sent to MixPanel GitHubLineStats events")
 
         end_time = time.time()
         elapsed_time = end_time - start_time
