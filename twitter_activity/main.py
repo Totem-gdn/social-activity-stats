@@ -87,22 +87,27 @@ def followers_control():
             json.dump(list(current_followers), f)
 
         if len(new_followers) < 1000:
-            for follower_id in new_followers:
-                try:
-                    new_follower_event(follower_id)
-                    logger.info("New followers: {}".format(follower_id))
-                except tweepy.errors.NotFound:
-                    logger.error("User with id {} not found".format(follower_id))
-
-            for unfollower_id in unfollowers:
-                try:
+            if len(new_followers) > 0:
+                for follower_id in new_followers:
                     try:
-                        unfollower_event(unfollower_id)
-                        logger.info("Unfollowers: {}".format(unfollowers))
+                        new_follower_event(follower_id)
+                        logger.info("New followers: {}".format(follower_id))
                     except tweepy.errors.NotFound:
-                        logger.error("User with id {} not found".format(unfollower_id))
-                except tweepy.errors.Forbidden:
-                    logger.error("User with id {} frozen".format(unfollower_id))
+                        logger.error("User with id {} not found".format(follower_id))
+            else:
+                logger.info("No new followers detected.")
+            if len(unfollowers) > 0:
+                for unfollower_id in unfollowers:
+                    try:
+                        try:
+                            unfollower_event(unfollower_id)
+                            logger.info("Unfollowers: {}".format(unfollowers))
+                        except tweepy.errors.NotFound:
+                            logger.error("User with id {} not found".format(unfollower_id))
+                    except tweepy.errors.Forbidden:
+                        logger.error("User with id {} frozen".format(unfollower_id))
+                else:
+                    logger.info('No new unfollowers detected.')
         else:
             logger.info("Previous followers updated")
         time.sleep(DELAY_UPDATE_FOLLOWERS)
