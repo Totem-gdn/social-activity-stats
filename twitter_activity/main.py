@@ -146,6 +146,7 @@ def new_follower_event(user_id):
         # Create MixPanel event
         mp_client.track(distinct_id, 'FollowersCount', properties)
         logger.info('NewFollower event: {}'.format(user['id_str']))
+        time.sleep(DELAY_NEW_EVENT)
     except tweepy.errors.Forbidden as err:
         print('User has been suspended')
 
@@ -172,6 +173,7 @@ def unfollower_event(user_id):
         # Create MixPanel event
         mp_client.track(distinct_id, 'UnfollowedCount', properties)
         logger.info('UserUnfollowed event created: {}'.format(distinct_id))
+        time.sleep(DELAY_NEW_EVENT)
     except tweepy.errors.Forbidden as err:
         print('User has been suspended')
 
