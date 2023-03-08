@@ -78,8 +78,8 @@ def followers_control():
 
         # Compare followers
         current_followers = set(followers_id)
-        new_followers = current_followers - previous_followers
-        unfollowers = previous_followers - current_followers
+        new_followers = current_followers.difference(previous_followers)
+        unfollowers = previous_followers.difference(current_followers)
 
         # Update previous_followers
         with open('previous_followers.json', 'w') as f:
