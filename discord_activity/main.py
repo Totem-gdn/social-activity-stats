@@ -54,7 +54,7 @@ def get_blockchain_address(username):
 
 def send_to_mixpanel(event, properties):
     dbg = ''  # use '-dbueg' when runing locally
-    mp_client.track(event.member.username, event.__class__.__name__ + dbg, properties)
+    mp_client.track(f"{event.member.username}#{event.member.discriminator}", event.__class__.__name__ + dbg, properties)
 
 
 @bot.listen(hikari.GuildMessageCreateEvent)

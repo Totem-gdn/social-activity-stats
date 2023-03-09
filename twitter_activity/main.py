@@ -80,7 +80,8 @@ def followers_control():
         current_followers = set(followers_id)
         new_followers = current_followers.difference(previous_followers)
         unfollowers = previous_followers.difference(current_followers)
-
+        logger.info("new followers {}".format(new_followers))
+        logger.info("unfollow {}".format(unfollowers))
         # Update previous_followers
         with open('previous_followers.json', 'w') as f:
             # Write the set to the file using JSON encoding
