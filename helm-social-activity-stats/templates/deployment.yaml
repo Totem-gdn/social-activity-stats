@@ -84,7 +84,6 @@ spec:
               mountPath: {{ $v }}
               readOnly: true
           {{- end }}
-          {{ toYaml .Values.initContainer.resources | indent 10 }}
             - name: {{ include "kor-base.fullname" . }}
               mountPath: /data
               {{- if .Values.persistence.subPath }}
