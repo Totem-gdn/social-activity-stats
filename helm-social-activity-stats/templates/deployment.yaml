@@ -109,4 +109,4 @@ spec:
       {{- end }}
       persistentVolumeClaim:
           claimName: {{ .Values.persistence.existingClaim | default (include "kor-base.fullname" .) }}
-      {{- else }}
+      {{- end }}
