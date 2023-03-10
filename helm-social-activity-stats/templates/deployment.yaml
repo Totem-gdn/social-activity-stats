@@ -83,6 +83,8 @@ spec:
             - name: {{ $k }}
               mountPath: {{ $v }}
               readOnly: true
+            - name: {{ include "kor-base.fullname" . }}
+              mountPath: /data
           {{- end }}
       volumes:
       {{- range $k, $v := .Values.mountSecrets }}
@@ -96,12 +98,8 @@ spec:
             name: {{ $k }}
       {{- end }}
       {{- if .Values.persistence.enabled }}
-        - name: {{ include "kor-base.fullname" . }}
-            persistentVolumeClaim:
-               claimName: {{ include "kor-base.fullname" . }}
-      volumeMounts:
-        - name: {{ include "kor-base.fullname" . }}
-          mountPath: /data
+        persistentVolumeClaim:
+          claimName: {{ include "kor-base.fullname" . }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
