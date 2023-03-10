@@ -7,7 +7,12 @@ image:
 
 fullnameOverride: "social-activity-stats"
 containerPort: 5000
-
+  
+persistence:
+  enabled: true
+  # storageClass: "-"
+  accessMode: ReadWriteOnce
+  size: 1Gi        
 resources:
   limits:
     cpu: 250m
