@@ -10,6 +10,8 @@ from mixpanel_async import AsyncBufferedConsumer
 import requests
 import threading
 
+from mixpanel_utils import MixpanelUtils
+
 logger = logging.getLogger(__name__)
 
 # get logging level from config file - default to INFO
@@ -25,7 +27,7 @@ bot = hikari.GatewayBot(
     token=os.environ["DISCORD_TOKEN"],
     force_color=True
 )
-
+DELAY_UPDATE_MEMBERS = 900
 
 def get_event_properties(event):
     return {
@@ -59,14 +61,58 @@ def send_to_mixpanel(event, properties):
     mp_client.track(f"{event.member.username}#{event.member.discriminator}", event.__class__.__name__ + dbg, properties)
 
 
-@bot.listen(hikari.MemberCreateEvent)
-async def on_member_join(event: hikari.MemberCreateEvent):
-    guild = event.guild
-    member = event.member
-    username = f"{member.username}#{member.discriminator}"
-    properties = {'discord_id': member.id,
-                  'username': username}
-    mp_client.people_set(username, properties=properties)
+def get_all_members():
+    url = f"https://discordapp.com/api/guilds/{os.environ['DISORD_SERVER_ID']}/members"
+    headers = {
+        "Authorization": f'Bot {os.environ["DISCORD_TOKEN"]}'
+    }
+    params = {
+        "limit": 1000
+    }
+    members = requests.get(url=url, headers=headers, params=params).json()
+    usernames = []
+    for member in members:
+        username = member["user"]["username"]
+        discriminator = member["user"]["discriminator"]
+        usernames.append(f"{username}#{discriminator}")
+    return members
+
+
+def member_control():
+    while True:
+        members = get_all_members()
+        usernames = []
+        users = {}
+        for member in members:
+            username = member["user"]["username"]
+            discriminator = member["user"]["discriminator"]
+            usernames.append(f"{username}#{discriminator}")
+
+            user_id = member["user"]["id"]
+            users[f"{username}#{discriminator}"]=user_id
+
+        mputils = MixpanelUtils(
+            os.environ["DISCORD_MIXPANEL_SERVICE_ACCOUNT_SECRET"],
+            service_account_username=os.environ["DISCORD_MIXPANEL_SERVICE_ACCOUNT"],
+            project_id=os.environ["DISCORD_MIXPANEL_PROJECT_ID"],
+            token=os.environ['DISCORD_MIXPANEL_TOKEN'],
+            eu=True
+        )
+        mp_profiles_users = mputils.query_engage()
+
+        mixpanel_distinct_ids = [d['$distinct_id'] for d in mp_profiles_users]
+        new_users = set(usernames).difference(mixpanel_distinct_ids)
+
+        for new_user in new_users:
+            user_id = users[new_user]
+            properties = {
+                "discord_id": user_id,
+                "$name": new_user
+            }
+            mp_client.people_set(new_user,properties=properties)
+
+        logger.info("New Discord members {}".format(new_users))
+        time.sleep(DELAY_UPDATE_MEMBERS)
 
 
 @bot.listen(hikari.GuildMessageCreateEvent)
@@ -168,7 +214,7 @@ def member_count():
 def discord_main():
     # start the second thread for the infinite operation of the function
     threading.Thread(target=member_count).start()
-
+    threading.Thread(target=member_control).start()
     logger.info('--- bot starting ---')
     bot.run()
 
