@@ -109,9 +109,4 @@ spec:
       {{- end }}
         persistentVolumeClaim:
           claimName: {{ .Values.persistence.existingClaim | default (include "kor-base.fullname" .) }}
-      {{- else }}
-        emptyDir: {}
-      {{- end -}}
-      {{- if .Values.extraVolumes }}
-{{ tpl .Values.extraVolumes . | indent 6 }}
       {{- end }}
