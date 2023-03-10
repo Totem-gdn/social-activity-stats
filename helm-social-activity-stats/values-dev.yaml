@@ -3,26 +3,25 @@ replicaCount: 1
 image:
   repository: 667950714614.dkr.ecr.us-east-2.amazonaws.com/social-activity-stats
   pullPolicy: Always
-  tag: "dev"
+  tag: "prod"
 
-fullnameOverride: "dev-social-activity-stats"
+fullnameOverride: "social-activity-stats"
 containerPort: 5000
-
+  
+persistence:
+  enabled: true
+  # storageClass: "-"
+  accessMode: ReadWriteOnce
+  size: 1Gi        
 resources:
   limits:
     cpu: 250m
     memory: 256Mi
   requests:
-    cpu: 50m
+    cpu: 100m
     memory: 64Mi
 
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 80
-  targetMemoryUtilizationPercentage: 80
-  scaleDownSeconds: 3
+autoscaling: {}
 
 env:
     ENV: ""
