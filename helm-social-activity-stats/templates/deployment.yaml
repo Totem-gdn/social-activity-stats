@@ -86,9 +86,6 @@ spec:
           {{- end }}
       volumes:
       {{- range $k, $v := .Values.mountSecrets }}
-        - name: {{ include "kor-base.fullname" . }}
-          persistentVolumeClaim:
-             claimName: {{ include "kor-base.fullname" . }}
         - name: {{ $k }}
           secret:
             secretName: {{ $k }}
@@ -97,6 +94,14 @@ spec:
         - name: {{ $k }}
           configMap:
             name: {{ $k }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+        - name: {{ include "kor-base.fullname" . }}
+            persistentVolumeClaim:
+               claimName: {{ include "kor-base.fullname" . }}
+      volumeMounts:
+        - name: {{ include "kor-base.fullname" . }}
+          mountPath: /data
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -110,4 +115,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.persistence.enabled }}
