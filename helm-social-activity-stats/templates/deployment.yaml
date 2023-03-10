@@ -83,9 +83,14 @@ spec:
             - name: {{ $k }}
               mountPath: {{ $v }}
               readOnly: true
+          {{- end }}
+          {{ toYaml .Values.initContainer.resources | indent 10 }}
             - name: {{ include "kor-base.fullname" . }}
               mountPath: /data
+              {{- if .Values.persistence.subPath }}
+              subPath: {{ .Values.persistence.subPath }}
           {{- end }}
+
       volumes:
       {{- range $k, $v := .Values.mountSecrets }}
         - name: {{ $k }}
@@ -97,9 +102,10 @@ spec:
           configMap:
             name: {{ $k }}
       {{- end }}
+        - name: {{ include "kor-base.fullname" . }}
       {{- if .Values.persistence.enabled }}
-        persistentVolumeClaim:
-          claimName: {{ include "kor-base.fullname" . }}
+          persistentVolumeClaim:
+            claimName: {{ include "kor-base.fullname" . }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
