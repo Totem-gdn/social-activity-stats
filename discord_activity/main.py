@@ -38,6 +38,7 @@ def get_event_properties(event):
         #		"timestamp": event.message.timestamp,
     }
 
+
 def get_blockchain_address(username):
     url = "https://script.google.com/macros/s/AKfycbxChdtPvHwetbIaGJqjbx2IkSI-zBOZIB7z3Gxss2TwuMikbWyqjbuWr4MEIjUrY4IO/exec"
     params = {"username": username}
@@ -52,9 +53,20 @@ def get_blockchain_address(username):
         logger.error("Error:", response.status_code)
         return None
 
+
 def send_to_mixpanel(event, properties):
     dbg = ''  # use '-dbueg' when runing locally
     mp_client.track(f"{event.member.username}#{event.member.discriminator}", event.__class__.__name__ + dbg, properties)
+
+
+@bot.listen()
+async def on_member_join(event: hikari.MemberCreateEvent):
+    guild = event.guild
+    member = event.member
+    username = f"{member.username}#{member.discriminator}"
+    properties = {'user_id': member.id,
+                  'username': username}
+    mp_client.people_set(username, properties=properties)
 
 
 @bot.listen(hikari.GuildMessageCreateEvent)
@@ -152,7 +164,7 @@ def member_count():
         logger.info(f"usersCount: {len(users)} and botsCount: {len(bots)} sent to mixpanel.")
         time.sleep(3600)
 
-        
+
 def discord_main():
     # start the second thread for the infinite operation of the function
     threading.Thread(target=member_count).start()

@@ -123,12 +123,13 @@ def get_twitter_follower_ids():
 
 
 def new_follower_event(user_id):
-    # Get user data from Twitter API
-    user_data = api.get_user(user_id=user_id)
-    user_json = json.dumps(user_data._json)
-    user = json.loads(user_json)
-    twitter_link = 'https://twitter.com/' + user['screen_name']
     try:
+        # Get user data from Twitter API
+        user_data = api.get_user(user_id=user_id)
+        user_json = json.dumps(user_data._json)
+        user = json.loads(user_json)
+        twitter_link = 'https://twitter.com/' + user['screen_name']
+
         distinct_id = user['id_str']
         version = get_commit_version()
         # Set properties for the Mixpanel event
