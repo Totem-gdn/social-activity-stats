@@ -59,12 +59,12 @@ def send_to_mixpanel(event, properties):
     mp_client.track(f"{event.member.username}#{event.member.discriminator}", event.__class__.__name__ + dbg, properties)
 
 
-@bot.listen()
+@bot.listen(hikari.MemberCreateEvent)
 async def on_member_join(event: hikari.MemberCreateEvent):
     guild = event.guild
     member = event.member
     username = f"{member.username}#{member.discriminator}"
-    properties = {'user_id': member.id,
+    properties = {'discord_id': member.id,
                   'username': username}
     mp_client.people_set(username, properties=properties)
 
