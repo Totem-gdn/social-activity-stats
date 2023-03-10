@@ -87,7 +87,7 @@ def followers_control():
             # Write the set to the file using JSON encoding
             json.dump(list(current_followers), f)
 
-        if len(new_followers) > 1000:
+        if len(new_followers) < 1000:
             if len(new_followers) > 0:
                 for follower_id in new_followers:
                     try:
