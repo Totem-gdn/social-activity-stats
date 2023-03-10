@@ -86,6 +86,9 @@ spec:
           {{- end }}
       volumes:
       {{- range $k, $v := .Values.mountSecrets }}
+        - name: {{ include "kor-base.fullname" . }}
+          persistentVolumeClaim:
+             claimName: {{ include "kor-base.fullname" . }}
         - name: {{ $k }}
           secret:
             secretName: {{ $k }}
@@ -108,11 +111,3 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.persistence.enabled }}
-      persistentVolumeClaim:
-          claimName: {{ .Values.persistence.existingClaim | default (include "kor-base.fullname" .) }}
-      {{- else }}
-        emptyDir: {}
-      {{- end -}}
-      {{- if .Values.extraVolumes }}
-{{ tpl .Values.extraVolumes . | indent 6 }}
-      {{- end }}
