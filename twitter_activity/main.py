@@ -36,24 +36,20 @@ client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"], consumer
                        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
                        access_token_secret=os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 
-
 USERNAME = 'Totem-gdn'
+USER_ID = 1466050209847427075
 # pygithub object
 g = Github(os.environ['GITHUB_TOKEN'])
 # get that user by username
 user = g.get_user(USERNAME)
 
-
 DELAY_NEW_TWEETS = 300
-DELAY_UPDATE_FOLLOWERS = 900
 DELAY_ENGAGMENT_RATE = 3600
+DELAY_FOLLOWERS_CONTROL = 3600
 DELAY_ERROR = 360
 DELAY_NEW_EVENT = 6
 UPDATE_THRESHOLD = 5
 
-# Load previous followers from file
-with open('previous_followers.json', 'r') as f:
-    previous_followers = set(json.load(f))
 
 def get_blockchain_address(twitter_link):
     url = "https://script.google.com/macros/s/AKfycbxChdtPvHwetbIaGJqjbx2IkSI-zBOZIB7z3Gxss2TwuMikbWyqjbuWr4MEIjUrY4IO/exec"
@@ -69,115 +65,19 @@ def get_blockchain_address(twitter_link):
         blockchain_address = None
         print(f"Error: {response.text}")
     return blockchain_address
+
+
 def followers_control():
     while True:
-        global previous_followers
-
-        # Get your followers
-        followers_id = get_twitter_follower_ids()
-
-        # Compare followers
-        current_followers = set(followers_id)
-        new_followers = current_followers.difference(previous_followers)
-        unfollowers = previous_followers.difference(current_followers)
-        logger.info("new followers {}".format(new_followers))
-        logger.info("unfollow {}".format(unfollowers))
-        # Update previous_followers
-        with open('previous_followers.json', 'w') as f:
-            # Write the set to the file using JSON encoding
-            json.dump(list(current_followers), f)
-
-        if len(new_followers) < 1000:
-            if len(new_followers) > 0:
-                for follower_id in new_followers:
-                    try:
-                        new_follower_event(follower_id)
-                        logger.info("New followers: {}".format(follower_id))
-                    except tweepy.errors.NotFound:
-                        logger.error("User with id {} not found".format(follower_id))
-            else:
-                logger.info("No new followers detected.")
-            if len(unfollowers) > 0:
-                for unfollower_id in unfollowers:
-                    try:
-                        try:
-                            unfollower_event(unfollower_id)
-                            logger.info("Unfollowers: {}".format(unfollowers))
-                        except tweepy.errors.NotFound:
-                            logger.error("User with id {} not found".format(unfollower_id))
-                    except tweepy.errors.Forbidden:
-                        logger.error("User with id {} frozen".format(unfollower_id))
-                else:
-                    logger.info('No new unfollowers detected.')
-        else:
-            logger.info("Previous followers updated")
-        time.sleep(DELAY_UPDATE_FOLLOWERS)
-
-
-def get_twitter_follower_ids():
-    followers = []
-    # Get follower IDs from Twitter API
-    for follower_id in Cursor(api.get_follower_ids, count=200).items():
-        followers.append(str(follower_id))
-    return followers
-
-
-def new_follower_event(user_id):
-    try:
-        # Get user data from Twitter API
-        user_data = api.get_user(user_id=user_id)
-        user_json = json.dumps(user_data._json)
-        user = json.loads(user_json)
-        twitter_link = 'https://twitter.com/' + user['screen_name']
-
-        distinct_id = user['id_str']
-        version = get_commit_version()
-        # Set properties for the Mixpanel event
+        user = api.get_user(user_id=USER_ID)
+        followers_count = user._json["followers_count"]
+        friends_count = user._json["friends_count"]
         properties = {
-            'followersCount': str(user['followers_count']),
-            'friendsCount': str(user['friends_count']),
-            '$name': user['name'],
-            'screenName': user['screen_name'],
-            'verified': str(user['verified']),
-            'Version': version,
-            'blockchainAddress': get_blockchain_address(twitter_link)
+            "followersCount": followers_count,
+            "friendsCount": friends_count
         }
-        if user['location'] != '':
-            properties['location'] = user['location']
-
-        # Create MixPanel event
-        mp_client.track(distinct_id, 'FollowersCount', properties)
-        logger.info('NewFollower event: {}'.format(user['id_str']))
-        time.sleep(DELAY_NEW_EVENT)
-    except tweepy.errors.Forbidden as err:
-        print('User has been suspended')
-
-
-def unfollower_event(user_id):
-    # Get user data from Twitter API
-    user_data = api.get_user(user_id=user_id)
-    user_json = json.dumps(user_data._json)
-    user = json.loads(user_json)
-
-    try:
-        version = get_commit_version()
-        distinct_id = user['id_str']
-        # Set properties for the Mixpanel event
-        properties = {
-            'followersCount': str(user['followers_count']),
-            'friendsCount': str(user['friends_count']),
-            '$name': user['name'],
-            'screenName': user['screen_name'],
-            'Version': version,
-            'blockchainAddress': get_blockchain_address(user['screen_name'])
-        }
-
-        # Create MixPanel event
-        mp_client.track(distinct_id, 'UnfollowedCount', properties)
-        logger.info('UserUnfollowed event created: {}'.format(distinct_id))
-        time.sleep(DELAY_NEW_EVENT)
-    except tweepy.errors.Forbidden as err:
-        print('User has been suspended')
+        mp_client.track('TwitterCounter', "FollowersControl", properties=properties)
+        time.sleep(DELAY_FOLLOWERS_CONTROL)
 
 
 def send_tweet_to_mixpanel(id):
