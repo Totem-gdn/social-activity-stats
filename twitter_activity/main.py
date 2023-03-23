@@ -72,9 +72,11 @@ def followers_control():
         user = api.get_user(user_id=USER_ID)
         followers_count = user._json["followers_count"]
         friends_count = user._json["friends_count"]
+        version = get_commit_version()
         properties = {
             "followersCount": followers_count,
-            "friendsCount": friends_count
+            "friendsCount": friends_count,
+            "Version": version
         }
         mp_client.track('TwitterCounter', "FollowersControl", properties=properties)
         time.sleep(DELAY_FOLLOWERS_CONTROL)
