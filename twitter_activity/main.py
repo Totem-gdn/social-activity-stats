@@ -206,7 +206,7 @@ def get_commit_version():
 
 
 def twitter_main():
-    logger.info('--- Twitter analysis starting ---')
+    logger.info('--- Twitter analysis starting --- ')
 
     threads = []
 
