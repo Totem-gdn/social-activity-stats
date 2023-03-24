@@ -23,6 +23,12 @@ resources:
 
 autoscaling: {}
 
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "third"
+    effect: "NoSchedule"
+
 env:
     ENV: ""
     
