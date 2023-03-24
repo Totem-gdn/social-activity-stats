@@ -214,10 +214,10 @@ def twitter_main():
 
     new_tweets_thread = threading.Thread(target=get_new_tweets)
     threads.append(new_tweets_thread)
-    followers_control_thread = threading.Thread(target=followers_control)
-    threads.append(followers_control_thread)
     engagement_rate_thread = threading.Thread(target=get_engagement_rate_event)
     threads.append(engagement_rate_thread)
+    followers_control_thread = threading.Thread(target=followers_control)
+    threads.append(followers_control_thread)
 
     for thread in threads:
         thread.start()
