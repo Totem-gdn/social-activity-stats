@@ -62,7 +62,7 @@ def send_to_mixpanel(event, properties):
 
 
 def get_all_members():
-    url = f"https://discordapp.com/api/guilds/{os.environ['DISORD_SERVER_ID']}/members"
+    url = f"https://discordapp.com/api/guilds/{os.environ['DISCORD_SERVER_ID']}/members"
     headers = {
         "Authorization": f'Bot {os.environ["DISCORD_TOKEN"]}'
     }
